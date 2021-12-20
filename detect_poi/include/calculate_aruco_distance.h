@@ -9,11 +9,11 @@
 #include <sensor_msgs/Image.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <message_filters/subscriber.h>
 #include <operator_intent_msgs/point2d.h>
 #include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
-#include <message_filters/time_synchronizer.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include <iostream>
@@ -33,7 +33,7 @@ public:
   CalculateArucoDistance();
   ~CalculateArucoDistance();
 
-  void callBack(const sensor_msgs::ImageConstPtr &image, const operator_intent_msgs::marker_locationsConstPtr &markers);
+  void callBack(const operator_intent_msgs::marker_locationsConstPtr &markers, const sensor_msgs::ImageConstPtr &image);
   void callBack(const sensor_msgs::ImageConstPtr& msg);
 };
 
