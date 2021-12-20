@@ -13,7 +13,7 @@
 //#include <opencv2/highgui.hpp> // <-- was not needed, as it's already included in line 13
 #include <iostream>
 */
-#include "DetectAruco.h"
+#include <detect_aruco.h>
 
 int main(int argc, char** argv)
 {

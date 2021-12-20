@@ -142,11 +142,11 @@ include_directories(
 #   src/${PROJECT_NAME}/detect_poi.cpp
 # )
 add_library(detect_aruco_lib
-  src/DetectAruco.cpp
+  src/detect_aruco.cpp
 )
 
 add_library(calculate_aruco_distance_lib
-  src/CalculateArucoDistance.cpp
+  src/calculate_aruco_distance.cpp
 )
 
 ## Add cmake target dependencies of the library

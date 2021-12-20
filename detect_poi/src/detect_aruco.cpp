@@ -1,4 +1,4 @@
-#include "DetectAruco.h"
+#include <detect_aruco.h>
 
 /*
 Preprocessor directives below:

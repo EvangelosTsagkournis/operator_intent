@@ -1,4 +1,4 @@
-#include <CalculateArucoDistance.h>
+#include <calculate_aruco_distance.h>
 
 CalculateArucoDistance::CalculateArucoDistance() : it_(nh_)
 {
