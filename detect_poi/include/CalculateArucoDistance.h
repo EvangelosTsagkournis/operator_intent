@@ -10,6 +10,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <message_filters/subscriber.h>
+#include <operator_intent_msgs/point2d.h>
+#include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
