@@ -36,6 +36,7 @@ private:
     image_transport::Subscriber image_sub_;
     image_transport::Publisher image_pub_;
     ros::Publisher markers_loc_pub;
+    ros::Publisher orthogonal_markers_loc_pub;
     std::string m_pub_topic, m_sub_rgb_image_topic;
 
     // Initialize vectors for the ID's of the markers and the marker corners

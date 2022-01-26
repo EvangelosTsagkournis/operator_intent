@@ -1,7 +1,3 @@
-#ifndef CALCULATEARUCODISTANCE_H
-#define CALCULATEARUCODISTANCE_H
-
-
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -36,5 +32,3 @@ public:
   void callBack(const operator_intent_msgs::marker_locationsConstPtr &markers, const sensor_msgs::ImageConstPtr &image);
   void callBack(const sensor_msgs::ImageConstPtr& msg);
 };
-
-#endif

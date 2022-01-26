@@ -147,25 +147,35 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
         }
     }
 
-    // Publish the marker corners to the topic "aruco/markers_loc"
+    // Publish the orthognal marker corners to the topic "aruco/orthogonal_markers_loc"
+    // As well as the original marker corners to the topic "aruco/markers_loc"
     if (orthogonalMarkerCorners.size() > 0)
     {
+        operator_intent_msgs::marker_locations orthogonal_marker_locations;
         operator_intent_msgs::marker_locations marker_locations;
         for (unsigned long int i = 0; i < orthogonalMarkerCorners.size(); i++){
+            operator_intent_msgs::corner_array orthogonal_corner_array;
             operator_intent_msgs::corner_array corner_array;
+            orthogonal_corner_array.markerId = markerIds[i];
             corner_array.markerId = markerIds[i];
             for (unsigned long int j = 0; j < 4; j++)
             {
+                operator_intent_msgs::point2d orthogonal_point2d;
                 operator_intent_msgs::point2d point2d;
-                point2d.x = orthogonalMarkerCorners[i][j].x;
-                point2d.y = orthogonalMarkerCorners[i][j].y;
+                orthogonal_point2d.x = orthogonalMarkerCorners[i][j].x;
+                orthogonal_point2d.y = orthogonalMarkerCorners[i][j].y;
+                orthogonal_corner_array.corner_points[j] = orthogonal_point2d;
+                point2d.x = markerCorners[i][j].x;
+                point2d.y = markerCorners[i][j].y;
                 corner_array.corner_points[j] = point2d;
             }
-            marker_locations.header.stamp = ros::Time::now();
-            marker_locations.n_markers = orthogonalMarkerCorners.size();
+            orthogonal_marker_locations.header.stamp, marker_locations.header.stamp = ros::Time::now();
+            orthogonal_marker_locations.n_markers, marker_locations.n_markers = orthogonalMarkerCorners.size();
+            orthogonal_marker_locations.markers.push_back(orthogonal_corner_array);
             marker_locations.markers.push_back(corner_array);
 
         }
+        orthogonal_markers_loc_pub.publish(orthogonal_marker_locations);
         markers_loc_pub.publish(marker_locations);
     }
 
@@ -189,6 +199,7 @@ DetectAruco::DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic)
       &DetectAruco::imageCallback, this);
     image_pub_ = it_.advertise(m_pub_topic, 1);
     markers_loc_pub = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
+    orthogonal_markers_loc_pub = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/orthogonal_markers_loc", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
 }
