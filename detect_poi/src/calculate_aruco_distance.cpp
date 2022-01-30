@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
@@ -16,123 +17,27 @@
 
 #include "node_template.cpp"
 
-//static const std::string OPENCV_WINDOW = "Image Window";
-
-class CalculateArucoDistance
-{
-  ros::NodeHandle nh_;
-  image_transport::ImageTransport it_;
-  image_transport::Subscriber image_sub_;
-  image_transport::Publisher image_pub_;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub;
-  message_filters::Subscriber<sensor_msgs::Image> depth_image_sub;
-
-public:
-  CalculateArucoDistance();
-  CalculateArucoDistance(ros::NodeHandle, ros::NodeHandle);
-  ~CalculateArucoDistance();
-
-  void callBack(const operator_intent_msgs::marker_locationsConstPtr &marker_locations, const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, const sensor_msgs::ImageConstPtr &image);
-};
-
-CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHandle pnh) : it_(nh_)
-{
-  // Subscribe to input video feed and publish output video feed
-  marker_loc_sub.subscribe(nh_, "/aruco/markers_loc", 1);
-  orthogonal_marker_loc_sub.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
-  depth_image_sub.subscribe(nh_, "/camera/depth/image_raw", 1);
-
-
-  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub, orthogonal_marker_loc_sub, depth_image_sub);
-  sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2, _3));
-  ros::spin();
-
-  /*
-  image_sub_ = it_.subscribe("/camera/depth/image_raw", 1,
-    &CalculateArucoDistance::callBack, this);
-  image_pub_ = it_.advertise("/image_converter/output_video", 1);
-  */
-}
-
-CalculateArucoDistance::~CalculateArucoDistance() 
-{
-}
-
-void CalculateArucoDistance::callBack(
-  const operator_intent_msgs::marker_locationsConstPtr &marker_locations, 
-  const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, 
-  const sensor_msgs::ImageConstPtr &image
-  )
-{
-  // Write the logic for the depth image average calculation
-  std::cout << "xd!" << std::endl;
-  //std::cout << marker_locations->markers[0].corner_points[0].x << std::endl;
-  if (orthogonal_marker_locations->markers.size() > 0){
-    // For each marker [0...n]:
-    for (unsigned long int i = 0; i <= orthogonal_marker_locations->markers.size(); i++) {
-      double sum = 0;
-      // For the four corners of each marker [0...3]:
-      Point marker[4];
-      int min_x;
-      int min_y;
-      int max_x;
-      int max_y;
-      // Set the minimum and maximum values of x and y to the coordinates of the current marker's first corner
-      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
-      min_x, max_x, marker[0].x = orthogonal_marker_locations->markers[i].corner_points[0].x;
-      min_y, max_y, marker[0].y= orthogonal_marker_locations->markers[i].corner_points[0].y;
-      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
-
-      for (unsigned long int j = 1; j <= orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
-        marker[j].x = marker_locations->markers[i].corner_points[j].x;
-        marker[j].y = marker_locations->markers[i].corner_points[j].y;
-        if (min_x > orthogonal_marker_locations->markers[i].corner_points[j].x) min_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
-        if (max_x < orthogonal_marker_locations->markers[i].corner_points[j].x) max_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
-        if (min_y > orthogonal_marker_locations->markers[i].corner_points[j].y) min_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
-        if (max_y < orthogonal_marker_locations->markers[i].corner_points[j].y) max_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
-      }
-
-      for (unsigned long int j = min_x; j <= max_x; j++) {
-        for (unsigned long int k = min_y; k <= max_y; k++) {
-          if (isInside(marker, image->data{
-
-          }
-        }
-      }
-    }
-  }
-  
-
-};
-
-int main(int argc, char **argv) {
-    NodeMain<CalculateArucoDistance>(argc, argv, "CalculateArucoDistanceNode");
-}
-
 
 /////////////////////////////////////////////////////////////////////////////
 // Helper material to find whether a point is inside the area of an object //
 /////////////////////////////////////////////////////////////////////////////
 
 // Define Infinite (Using INT_MAX caused overflow problems) 
-#define INF 10000 
- 
+#define INF 10000
+
 struct Point 
 { 
     int x; 
     int y; 
 }; 
- 
+
 // Given three collinear points p, q, r, the function checks if 
 // point q lies on line segment 'pr' 
 bool onSegment(Point p, Point q, Point r) 
 { 
-    if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && 
-            q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y)) 
-        return true; 
-    return false; 
+  if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y))
+    return true; 
+  return false; 
 } 
  
 // To find orientation of ordered triplet (p, q, r). 
@@ -214,3 +119,128 @@ bool isInside(Point polygon[], Point p)
     // Return true if count is odd, false otherwise 
     return count&1; // Same as (count%2 == 1) 
 } 
+
+////////////////////////////////////////////////////////////////////////////////////
+// End of helper material to find whether a point is inside the area of an object //
+////////////////////////////////////////////////////////////////////////////////////
+
+//static const std::string OPENCV_WINDOW = "Image Window";
+
+class CalculateArucoDistance
+{
+  ros::NodeHandle nh_;
+  image_transport::ImageTransport it_;
+  image_transport::Subscriber image_sub_;
+  image_transport::Publisher image_pub_;
+  message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub;
+  message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub;
+  //message_filters::Subscriber<sensor_msgs::Image> depth_image_sub;
+
+  typedef image_transport::SubscriberFilter ImageSubscriber;
+  ImageSubscriber depth_image_sub;
+
+public:
+  CalculateArucoDistance();
+  CalculateArucoDistance(ros::NodeHandle, ros::NodeHandle);
+  ~CalculateArucoDistance();
+
+  void callBack(const operator_intent_msgs::marker_locationsConstPtr &marker_locations, const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, const sensor_msgs::ImageConstPtr &image);
+};
+
+CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHandle pnh) :
+  it_(nh_),
+  depth_image_sub(it_, "camera/depth/image_raw", 1)
+{
+  // Subscribe to input video feed and publish output video feed
+  marker_loc_sub.subscribe(nh_, "/aruco/markers_loc", 1);
+  orthogonal_marker_loc_sub.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
+  //depth_image_sub.subscribe(nh_, "/camera/depth/image_raw", 1);
+
+  //Checkpoint #0
+  std::cout << "Checkpoint #0" << std::endl;
+
+  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub, orthogonal_marker_loc_sub, depth_image_sub);
+  sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2, _3));
+  ros::spin();
+
+  /*
+  image_sub_ = it_.subscribe("/camera/depth/image_raw", 1,
+    &CalculateArucoDistance::callBack, this);
+  image_pub_ = it_.advertise("/image_converter/output_video", 1);
+  */
+}
+
+CalculateArucoDistance::~CalculateArucoDistance() 
+{
+}
+
+void CalculateArucoDistance::callBack(
+  const operator_intent_msgs::marker_locationsConstPtr &marker_locations, 
+  const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, 
+  const sensor_msgs::ImageConstPtr &image
+  )
+{
+  // Checkpoint #1
+  std::cout << "Checkpoint #1" << std::endl;
+  cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+        cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+    }
+  
+  // Write the logic for the depth image average calculation
+  std::cout << "xd!" << std::endl;
+  //std::cout << marker_locations->markers[0].corner_points[0].x << std::endl;
+  if (orthogonal_marker_locations->markers.size() > 0){
+    // For each marker [0...n]:
+    for (unsigned long int i = 0; i <= orthogonal_marker_locations->markers.size(); i++) {
+      // Checkpoint #2
+      std::cout << "Checkpoint #2" << std::endl;
+      double sum = 0;
+      unsigned long count = 0;
+      Point marker[4];
+      int min_x;
+      int min_y;
+      int max_x;
+      int max_y;
+      // Set the minimum and maximum values of x and y to the coordinates of the current marker's first corner
+      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
+      min_x, max_x, marker[0].x = orthogonal_marker_locations->markers[i].corner_points[0].x;
+      min_y, max_y, marker[0].y= orthogonal_marker_locations->markers[i].corner_points[0].y;
+      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
+
+      // For the four corners of each marker [0...3]:
+      for (unsigned long int j = 1; j <= orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
+        marker[j].x = marker_locations->markers[i].corner_points[j].x;
+        marker[j].y = marker_locations->markers[i].corner_points[j].y;
+        if (min_x > orthogonal_marker_locations->markers[i].corner_points[j].x) min_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
+        if (max_x < orthogonal_marker_locations->markers[i].corner_points[j].x) max_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
+        if (min_y > orthogonal_marker_locations->markers[i].corner_points[j].y) min_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
+        if (max_y < orthogonal_marker_locations->markers[i].corner_points[j].y) max_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
+      }
+
+      Point pixel;
+      for (int j = min_x; j <= max_x; j++) {
+        for (int k = min_y; k <= max_y; k++) {
+          pixel.x = j;
+          pixel.y = k;
+          if (isInside(marker, pixel)){
+            sum += cv_ptr->image.at<double>(pixel.x, pixel.y);
+            count++;
+          }
+        }
+      }
+      std::cout << sum/count << std::endl;
+    }
+  }
+}
+
+int main(int argc, char **argv) {
+  NodeMain<CalculateArucoDistance>(argc, argv, "CalculateArucoDistanceNode");
+}
