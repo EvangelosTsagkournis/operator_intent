@@ -186,12 +186,12 @@ void CalculateArucoDistance::callBack(
   cv_bridge::CvImagePtr cv_ptr;
     try
     {
-        cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
+      cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::TYPE_32FC1);
     }
     catch (cv_bridge::Exception& e)
     {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-        return;
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
     }
   
   // Write the logic for the depth image average calculation
@@ -199,9 +199,7 @@ void CalculateArucoDistance::callBack(
   //std::cout << marker_locations->markers[0].corner_points[0].x << std::endl;
   if (orthogonal_marker_locations->markers.size() > 0){
     // For each marker [0...n]:
-    for (unsigned long int i = 0; i <= orthogonal_marker_locations->markers.size(); i++) {
-      // Checkpoint #2
-      std::cout << "Checkpoint #2" << std::endl;
+    for (unsigned long int i = 0; i < orthogonal_marker_locations->markers.size(); i++) {
       double sum = 0;
       unsigned long count = 0;
       Point marker[4];
@@ -216,7 +214,7 @@ void CalculateArucoDistance::callBack(
       // Additionally, set the marker[0]'s x and y to the first corner of the current marker
 
       // For the four corners of each marker [0...3]:
-      for (unsigned long int j = 1; j <= orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
+      for (unsigned long int j = 1; j < orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
         marker[j].x = marker_locations->markers[i].corner_points[j].x;
         marker[j].y = marker_locations->markers[i].corner_points[j].y;
         if (min_x > orthogonal_marker_locations->markers[i].corner_points[j].x) min_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
@@ -225,18 +223,18 @@ void CalculateArucoDistance::callBack(
         if (max_y < orthogonal_marker_locations->markers[i].corner_points[j].y) max_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
       }
 
-      Point pixel;
-      for (int j = min_x; j <= max_x; j++) {
-        for (int k = min_y; k <= max_y; k++) {
-          pixel.x = j;
-          pixel.y = k;
-          if (isInside(marker, pixel)){
-            sum += cv_ptr->image.at<double>(pixel.x, pixel.y);
-            count++;
-          }
-        }
-      }
-      std::cout << sum/count << std::endl;
+      // Point pixel;
+      // for (int j = min_x; j <= max_x; j++) {
+      //   for (int k = min_y; k <= max_y; k++) {
+      //     pixel.x = j;
+      //     pixel.y = k;
+      //     if (isInside(marker, pixel)){
+      //       sum += cv_ptr->image.at<double>(pixel.x, pixel.y);
+      //       count++;
+      //     }
+      //   }
+      // }
+      // std::cout << sum/count << std::endl;
     }
   }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <!-- detect_aruco_node -->
+  <node pkg="detect_poi" type="detect_aruco_node" name="detect_aruco_node" output="screen">
+    <param name="/use_sim_time" value="true"/>
+  </node>
+
+  <!-- calculate_auruco_distance_node-->
+  <node pkg="detect_poi" type="calculate_aruco_distance_node" name="calculate_aruco_distance_node" output="screen">
+    <param name="/use_sim_time" value="true"/>
+  </node>
+</launch>
