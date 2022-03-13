@@ -137,14 +137,26 @@ class CalculateArucoDistance
   //message_filters::Subscriber<sensor_msgs::Image> depth_image_sub;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
+
+  typedef union U_FloatParse {
+    float float_data;
+    unsigned char byte_data[4];
+  } U_FloatConvert;
+
   ImageSubscriber depth_image_sub;
+
+  int ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image);
 
 public:
   CalculateArucoDistance();
   CalculateArucoDistance(ros::NodeHandle, ros::NodeHandle);
   ~CalculateArucoDistance();
 
-  void callBack(const operator_intent_msgs::marker_locationsConstPtr &marker_locations, const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, const sensor_msgs::ImageConstPtr &image);
+  void callBack(
+    const operator_intent_msgs::marker_locationsConstPtr &marker_locations,
+    const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations,
+    const sensor_msgs::ImageConstPtr &image
+  );
 };
 
 CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHandle pnh) :
@@ -155,9 +167,6 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
   marker_loc_sub.subscribe(nh_, "/aruco/markers_loc", 1);
   orthogonal_marker_loc_sub.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
   //depth_image_sub.subscribe(nh_, "/camera/depth/image_raw", 1);
-
-  //Checkpoint #0
-  std::cout << "Checkpoint #0" << std::endl;
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub, orthogonal_marker_loc_sub, depth_image_sub);
@@ -175,14 +184,53 @@ CalculateArucoDistance::~CalculateArucoDistance()
 {
 }
 
+int CalculateArucoDistance::ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image){
+   // If position is invalid
+    if ((height_pos >= depth_image->height) || (width_pos >= depth_image->width))
+        return -1;
+    int index = (height_pos*depth_image->step) + (width_pos*(depth_image->step/depth_image->width));
+    // If data is 4 byte floats (rectified depth image)
+    if ((depth_image->step/depth_image->width) == 4) {
+        U_FloatConvert depth_data;
+        int i, endian_check = 1;
+        // If big endian
+        if ((depth_image->is_bigendian && (*(char*)&endian_check != 1)) ||  // Both big endian
+           ((!depth_image->is_bigendian) && (*(char*)&endian_check == 1))) { // Both lil endian
+            for (i = 0; i < 4; i++)
+                depth_data.byte_data[i] = depth_image->data[index + i];
+            // Make sure data is valid (check if NaN)
+            if (depth_data.float_data == depth_data.float_data)
+                return int(depth_data.float_data*1000);
+            return -1;  // If depth data invalid
+        }
+        // else, one little endian, one big endian
+        for (i = 0; i < 4; i++) 
+            depth_data.byte_data[i] = depth_image->data[3 + index - i];
+        // Make sure data is valid (check if NaN)
+        if (depth_data.float_data == depth_data.float_data)
+            return int(depth_data.float_data*1000);
+        return -1;  // If depth data invalid
+    }
+    // Otherwise, data is 2 byte integers (raw depth image)
+   int temp_val;
+   // If big endian
+   if (depth_image->is_bigendian)
+       temp_val = (depth_image->data[index] << 8) + depth_image->data[index + 1];
+   // If little endian
+   else
+       temp_val = depth_image->data[index] + (depth_image->data[index + 1] << 8);
+   // Make sure data is valid (check if NaN)
+   if (temp_val == temp_val)
+       return temp_val;
+   return -1;  // If depth data invalid
+}
+
 void CalculateArucoDistance::callBack(
   const operator_intent_msgs::marker_locationsConstPtr &marker_locations, 
   const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, 
   const sensor_msgs::ImageConstPtr &image
   )
 {
-  // Checkpoint #1
-  std::cout << "Checkpoint #1" << std::endl;
   cv_bridge::CvImagePtr cv_ptr;
     try
     {
@@ -193,10 +241,11 @@ void CalculateArucoDistance::callBack(
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
+
+  cv::Mat norm_image;
+  cv_ptr->image.convertTo(norm_image, CV_32FC1, 1.0/5, 0);
   
   // Write the logic for the depth image average calculation
-  std::cout << "xd!" << std::endl;
-  //std::cout << marker_locations->markers[0].corner_points[0].x << std::endl;
   if (orthogonal_marker_locations->markers.size() > 0){
     // For each marker [0...n]:
     for (unsigned long int i = 0; i < orthogonal_marker_locations->markers.size(); i++) {
@@ -209,11 +258,15 @@ void CalculateArucoDistance::callBack(
       int max_y;
       // Set the minimum and maximum values of x and y to the coordinates of the current marker's first corner
       // Additionally, set the marker[0]'s x and y to the first corner of the current marker
-      min_x, max_x, marker[0].x = orthogonal_marker_locations->markers[i].corner_points[0].x;
-      min_y, max_y, marker[0].y= orthogonal_marker_locations->markers[i].corner_points[0].y;
+      marker[0].x = orthogonal_marker_locations->markers[i].corner_points[0].x;
+      min_x = marker[0].x;
+      max_x = marker[0].x;
+      marker[0].y= orthogonal_marker_locations->markers[i].corner_points[0].y;
+      min_y = marker[0].y;
+      max_y = marker[0].y;
       // Additionally, set the marker[0]'s x and y to the first corner of the current marker
 
-      // For the four corners of each marker [0...3]:
+      // For the four corners of each marker [1...3]:
       for (unsigned long int j = 1; j < orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
         marker[j].x = marker_locations->markers[i].corner_points[j].x;
         marker[j].y = marker_locations->markers[i].corner_points[j].y;
@@ -222,19 +275,22 @@ void CalculateArucoDistance::callBack(
         if (min_y > orthogonal_marker_locations->markers[i].corner_points[j].y) min_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
         if (max_y < orthogonal_marker_locations->markers[i].corner_points[j].y) max_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
       }
+      // std::cout << "Marker #" << i << std::endl;
+      // std::cout << "Min x: " << min_x << std::endl;
+      // std::cout << "Max x: " << max_x << std::endl;
+      // std::cout << "Min y: " << min_y << std::endl;
+      // std::cout << "Max y: " << max_y << std::endl;
 
-      // Point pixel;
-      // for (int j = min_x; j <= max_x; j++) {
-      //   for (int k = min_y; k <= max_y; k++) {
-      //     pixel.x = j;
-      //     pixel.y = k;
-      //     if (isInside(marker, pixel)){
-      //       sum += cv_ptr->image.at<double>(pixel.x, pixel.y);
-      //       count++;
-      //     }
-      //   }
-      // }
-      // std::cout << sum/count << std::endl;
+      Point pixel;
+      pixel.x = (min_x + max_x) / 2;
+      pixel.y = (min_y + max_y) / 2;
+      std::cout 
+        << "The average depth for the marker #" 
+        << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
+        << ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image)
+        << " mm" <<
+      std::endl;
+      
     }
   }
 }
