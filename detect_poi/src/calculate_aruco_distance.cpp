@@ -288,8 +288,7 @@ void CalculateArucoDistance::callBack(
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
         << ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image)
-        << " mm" <<
-      std::endl;
+        << " mm" << std::endl;
       
     }
   }
