@@ -9,6 +9,8 @@
 #include <operator_intent_msgs/point2d.h>
 #include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
+#include <operator_intent_msgs/pixel_with_distance.h>
+#include <operator_intent_msgs/pixel_array.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -134,6 +136,7 @@ class CalculateArucoDistance
   image_transport::Publisher image_pub_;
   message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub;
   message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub;
+  ros::Publisher pixel_array_pub;
   //message_filters::Subscriber<sensor_msgs::Image> depth_image_sub;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
@@ -166,6 +169,7 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub.subscribe(nh_, "/aruco/markers_loc", 1);
   orthogonal_marker_loc_sub.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
+  pixel_array_pub = nh_.advertise<operator_intent_msgs::pixel_array>("/aruco/pixel_array", 1);
   //depth_image_sub.subscribe(nh_, "/camera/depth/image_raw", 1);
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
@@ -247,8 +251,10 @@ void CalculateArucoDistance::callBack(
   
   // Write the logic for the depth image average calculation
   if (orthogonal_marker_locations->markers.size() > 0){
+    operator_intent_msgs::pixel_array pixel_array;
     // For each marker [0...n]:
     for (unsigned long int i = 0; i < orthogonal_marker_locations->markers.size(); i++) {
+      operator_intent_msgs::pixel_with_distance pixel_with_distance;
       double sum = 0;
       unsigned long count = 0;
       Point marker[4];
@@ -284,13 +290,23 @@ void CalculateArucoDistance::callBack(
       Point pixel;
       pixel.x = (min_x + max_x) / 2;
       pixel.y = (min_y + max_y) / 2;
+
+      pixel_with_distance.distance = ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image);
       std::cout 
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
-        << ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image)
+        << (int)pixel_with_distance.distance
         << " mm" << std::endl;
-      
+      pixel_with_distance.pixel_x = pixel.x;
+      pixel_with_distance.pixel_y = pixel.y;
+      pixel_array.pixels.push_back(pixel_with_distance);
     }
+    pixel_array.header.stamp = ros::Time::now();
+    pixel_array.camera_height = image->height;
+    pixel_array.camera_width = image->width;
+    
+    pixel_array_pub.publish(pixel_array);
+
   }
 }
 
