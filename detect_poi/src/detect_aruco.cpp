@@ -6,9 +6,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-// Time 
-#include <time.h>
-
 // Custom msg
 #include <operator_intent_msgs/point_2d.h>
 #include <operator_intent_msgs/corner_array.h>
