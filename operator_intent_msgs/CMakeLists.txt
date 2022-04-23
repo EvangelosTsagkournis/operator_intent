@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
-  point2d.msg
+  point_2d.msg
   corner_array.msg
   marker_locations.msg
   pixel_with_distance.msg

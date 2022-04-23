@@ -9,23 +9,21 @@
 #include <iostream>
 #include <fstream>
 
-using namespace std;
-using namespace cv;
 
 void createArucoMarkers()
 {
-  Mat outputMarker;
+  cv::Mat outputMarker;
 
-  Ptr<aruco::Dictionary> markerDictionary =
-      aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME::DICT_4X4_50);
+  cv::Ptr<cv::aruco::Dictionary> markerDictionary =
+      cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME::DICT_4X4_50);
 
   for (int i=0; i<50; i++)
   {
-    aruco::drawMarker(markerDictionary, i, 500, outputMarker, 1);
-    ostringstream convert;
-    string imageName = "4x4Marker_";
+    cv::aruco::drawMarker(markerDictionary, i, 500, outputMarker, 1);
+    std::ostringstream convert;
+    std::string imageName = "4x4Marker_";
     convert << imageName << i << ".png";
-    imwrite(convert.str(), outputMarker);
+    cv::imwrite(convert.str(), outputMarker);
   }
 }
 

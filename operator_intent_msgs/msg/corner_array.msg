@@ -1,2 +1,2 @@
 int32 markerId
-point2d[4] corner_points
+point_2d[4] corner_points

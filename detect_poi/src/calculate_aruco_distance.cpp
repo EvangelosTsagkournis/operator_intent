@@ -6,7 +6,7 @@
 #include <sensor_msgs/Image.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <operator_intent_msgs/point2d.h>
+#include <operator_intent_msgs/point_2d.h>
 #include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
 #include <operator_intent_msgs/pixel_with_distance.h>
@@ -134,10 +134,9 @@ class CalculateArucoDistance
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub;
-  ros::Publisher pixel_array_pub;
-  //message_filters::Subscriber<sensor_msgs::Image> depth_image_sub;
+  message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub_;
+  message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub_;
+  ros::Publisher pixel_array_pub_;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
 
@@ -146,7 +145,7 @@ class CalculateArucoDistance
     unsigned char byte_data[4];
   } U_FloatConvert;
 
-  ImageSubscriber depth_image_sub;
+  ImageSubscriber depth_image_sub_;
 
   int ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image);
 
@@ -164,16 +163,16 @@ public:
 
 CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHandle pnh) :
   it_(nh_),
-  depth_image_sub(it_, "camera/depth/image_raw", 1)
+  depth_image_sub_(it_, "camera/depth/image_raw", 1)
 {
   // Subscribe to input video feed and publish output video feed
-  marker_loc_sub.subscribe(nh_, "/aruco/markers_loc", 1);
-  orthogonal_marker_loc_sub.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
-  pixel_array_pub = nh_.advertise<operator_intent_msgs::pixel_array>("/aruco/pixel_array", 1);
-  //depth_image_sub.subscribe(nh_, "/camera/depth/image_raw", 1);
+  marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
+  orthogonal_marker_loc_sub_.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
+  pixel_array_pub_ = nh_.advertise<operator_intent_msgs::pixel_array>("/aruco/pixel_array", 1);
+  //depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub, orthogonal_marker_loc_sub, depth_image_sub);
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, orthogonal_marker_loc_sub_, depth_image_sub_);
   sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2, _3));
   ros::spin();
 
@@ -305,7 +304,7 @@ void CalculateArucoDistance::callBack(
     pixel_array.camera_height = image->height;
     pixel_array.camera_width = image->width;
     
-    pixel_array_pub.publish(pixel_array);
+    pixel_array_pub_.publish(pixel_array);
 
   }
 }

@@ -141,22 +141,18 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/detect_poi.cpp
 # )
-add_library(detect_aruco_lib
-  src/detect_aruco.cpp
-)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 #add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(detect_aruco_lib ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(generate_markers src/generate_markers.cpp)
 add_executable(depth_node src/depth_node.cpp)
-add_executable(detect_aruco_node src/testDetectAruco.cpp)
+add_executable(detect_aruco_node src/detect_aruco.cpp)
 add_executable(calculate_aruco_distance_node src/calculate_aruco_distance.cpp)
 add_executable(approximate_time src/approximate_time.cpp)
 add_executable(testnode src/SubscribeAndPublish.cpp)
@@ -186,7 +182,6 @@ target_link_libraries(depth_node
 )
 
 target_link_libraries(detect_aruco_node
-    detect_aruco_lib
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )

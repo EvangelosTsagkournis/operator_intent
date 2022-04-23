@@ -1,39 +1,58 @@
-#include <detect_aruco.h>
+// Image conversion from ROS to CV format libraries
+#include <ros/ros.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
-/*
-Preprocessor directives below:
+// Time 
+#include <time.h>
 
-EXPLICIT_CONSTRUCTOR:
-    Handles whether the explicit constructor will be used.
+// Custom msg
+#include <operator_intent_msgs/point_2d.h>
+#include <operator_intent_msgs/corner_array.h>
+#include <operator_intent_msgs/marker_locations.h>
 
-EXPLICIT_DESTRUCTOR:
-    Similar to EXPLICIT_CONSTRUCTOR, handles whether the explicit destructor will be used.
+// Aruco relevant libraries
+#include <opencv2/aruco.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp> // <-- was not needed, as it's already included in line 13
+#include <iostream>
 
-TERMINAL_INFO:
-    Handles whether the amount of Aruco tags detected in the image will be printed to the terminal.
-    It will also handle whether the corners of each of the detected marker corners will be printed to the terminal.
-    For example, if 2 Aruco tags are detected in the image, you should expect an output like:
+#include "node_template.cpp"
 
-    Detected tags: 2
-    Tag ID: 0
-    {
-        Point 0: x = 537, y = 28
-        Point 1: x = 573, y = 28
-        Point 2: x = 566, y = 68
-        Point 3: x = 531, y = 68
-    }
-    Tag ID: 8
-    {
-        Point 0: x = 298, y = 27
-        Point 1: x = 329, y = 27
-        Point 2: x = 329, y = 60
-        Point 3: x = 299, y = 60
-    }
-*/
 
-#define EXPLICIT_CONSTRUCTOR 1
-#define EXPLICIT_DESTRUCTOR 1
-#define TERMINAL_INFO 0
+class DetectAruco
+{
+private:
+    const std::string OPENCV_WINDOW = "Aruco Marker Detection";
+    ros::NodeHandle nh_;
+    image_transport::ImageTransport it_;
+    image_transport::Subscriber image_sub_;
+    image_transport::Publisher image_pub_;
+    ros::Publisher markers_loc_pub_;
+    ros::Publisher orthogonal_markers_loc_pub_;
+    std::string pub_topic_, sub_rgb_image_topic_;
+
+    // Initialize vectors for the ID's of the markers and the marker corners
+    std::vector<int> marker_ids;
+    std::vector<std::vector<cv::Point2f> > marker_corners;
+
+    // The below are commented out, as they are only for the rejected candidates for tags
+    // std::vector<std::vector<cv::Point2f>> marker_corners, rejectedCandidates;
+    // cv::Ptr<cv::aruco::DetectorParameters> parameters;
+
+    // Define the dictionary to be detected
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+
+public:
+    DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic);
+    DetectAruco(ros::NodeHandle, ros::NodeHandle);
+    ~DetectAruco();
+};
+
 
 void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -49,49 +68,30 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     }
 
     // Detect tags in the image, using the provided detectMarkers method
-    cv::aruco::detectMarkers(cv_ptr->image, dictionary, markerCorners, markerIds);
+    cv::aruco::detectMarkers(cv_ptr->image, dictionary, marker_corners, marker_ids);
     // Draw the bounding box around the detected tags using the provided drawDetectedMarkers method
     // Commented out for debugging
     /*
-    cv::aruco::drawDetectedMarkers(cv_ptr->image, markerCorners, markerIds);
+    cv::aruco::drawDetectedMarkers(cv_ptr->image, marker_corners, marker_ids);
     */
-    // Checking if the markerCorners array is empty, if it is, we skip it (keep in mind the
-    // dimensions of the markerCorners array is Nx4, where N is the number of tags detected)
+    // Checking if the marker_corners array is empty, if it is, we skip it (keep in mind the
+    // dimensions of the marker_corners array is Nx4, where N is the number of tags detected)
 
-    #if TERMINAL_INFO // PREPROCESSOR DIRECTIVE, if 1: gets compiled, if 0: does not 
-    if (markerCorners.size() > 0) {
-        std::cout << "Detected tags: " << markerCorners.size() << std::endl;
-        for (unsigned long int i = 0; i < markerCorners.size(); i++)
-        {
-            // Print the first detected tag's id
-            std::cout <<"Tag ID: " << markerIds[i] << std::endl << "{" << std::endl;;
-            // Using a for loop 0...3 for each of the 4 corners of the tag
-            for(unsigned long int j = 0; j < 4; j++)
-            {
-                //Printing out the pixels of the corners of the first tag detected in the image
-                std::cout << std::setw(10) << "Point "<< j 
-                    << ": x = " << markerCorners[i][j].x << ", " << "y = " << markerCorners[i][j].y << std::endl;
-            }
-        std::cout << "}" << std::endl;
-        }
-    }
-    #endif
-
-    std::vector<std::vector<cv::Point2f> > orthogonalMarkerCorners;
+    std::vector<std::vector<cv::Point2f> > orthogonal_marker_corners;
     // The code below will attempt to draw a bounding box containing the tag, if any tags were detected successfully
-    if (markerCorners.size() > 0)
+    if (marker_corners.size() > 0)
     {
-        //std::vector<std::vector<cv::Point2f> > orthogonalMarkerCorners = markerCorners;
-        orthogonalMarkerCorners = markerCorners;
+        //std::vector<std::vector<cv::Point2f> > orthogonal_marker_corners = marker_corners;
+        orthogonal_marker_corners = marker_corners;
         // Loop through all of the detected tags
         float min_x, min_y, max_x, max_y;
-        for (unsigned long int i = 0; i < orthogonalMarkerCorners.size(); i++)
+        for (unsigned long int i = 0; i < orthogonal_marker_corners.size(); i++)
         {
             // Initialize the minimum and maximum values of the corners to the marker's first corner values
-            min_x = markerCorners[i][0].x;
-            min_y = markerCorners[i][0].y;
-            max_x = markerCorners[i][0].x;
-            max_y = markerCorners[i][0].y;
+            min_x = marker_corners[i][0].x;
+            min_y = marker_corners[i][0].y;
+            max_x = marker_corners[i][0].x;
+            max_y = marker_corners[i][0].y;
 
             // Check for the minimum and maximum values of x and y of all the corners, in order to draw an orthogonal bounding box.
 
@@ -101,33 +101,33 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
                 * markers, however it might not be orthogonal and that introduces problems for the logic. */
             for (unsigned long int j = 0; j < 4; j++)
             {
-                if (markerCorners[i][j].x < min_x) min_x = markerCorners[i][j].x;
-                if (markerCorners[i][j].x > max_x) max_x = markerCorners[i][j].x;
-                if (markerCorners[i][j].y < min_y) min_y = markerCorners[i][j].y;
-                if (markerCorners[i][j].y > max_y) max_y = markerCorners[i][j].y;
+                if (marker_corners[i][j].x < min_x) min_x = marker_corners[i][j].x;
+                if (marker_corners[i][j].x > max_x) max_x = marker_corners[i][j].x;
+                if (marker_corners[i][j].y < min_y) min_y = marker_corners[i][j].y;
+                if (marker_corners[i][j].y > max_y) max_y = marker_corners[i][j].y;
             }
 
-            // Quick and dirty way to assign corners to orthogonalMarkerCorners
+            // Quick and dirty way to assign corners to orthogonal_marker_corners
 
             for (unsigned long int j = 0; j < 4; j++)
             {
                 switch (j)
                 {
                 case 0:
-                    orthogonalMarkerCorners[i][j].x = min_x;
-                    orthogonalMarkerCorners[i][j].y = min_y;
+                    orthogonal_marker_corners[i][j].x = min_x;
+                    orthogonal_marker_corners[i][j].y = min_y;
                     break;
                 case 1:
-                    orthogonalMarkerCorners[i][j].x = max_x;
-                    orthogonalMarkerCorners[i][j].y = min_y;
+                    orthogonal_marker_corners[i][j].x = max_x;
+                    orthogonal_marker_corners[i][j].y = min_y;
                     break;
                 case 2:
-                    orthogonalMarkerCorners[i][j].x = max_x;
-                    orthogonalMarkerCorners[i][j].y = max_y;
+                    orthogonal_marker_corners[i][j].x = max_x;
+                    orthogonal_marker_corners[i][j].y = max_y;
                     break;
                 case 3:
-                    orthogonalMarkerCorners[i][j].x = min_x;
-                    orthogonalMarkerCorners[i][j].y = max_y;
+                    orthogonal_marker_corners[i][j].x = min_x;
+                    orthogonal_marker_corners[i][j].y = max_y;
                     break;
                 }
             }
@@ -138,46 +138,46 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
             // Configure the color for the lines
             cv::Scalar color = cv::Scalar(0, 255, 0);
 
-            // Loop through the orthogonalMarkerCorners and draw the bounding boxes
+            // Loop through the orthogonal_marker_corners and draw the bounding boxes
             for (unsigned int j = 0; j < 3; j++)
             {
-                cv::line(cv_ptr->image, orthogonalMarkerCorners[i][j], orthogonalMarkerCorners[i][j+1], color, thickness, cv::LINE_8);
+                cv::line(cv_ptr->image, orthogonal_marker_corners[i][j], orthogonal_marker_corners[i][j+1], color, thickness, cv::LINE_8);
             }
-            cv::line(cv_ptr->image, orthogonalMarkerCorners[i][3], orthogonalMarkerCorners[i][0], color, thickness, cv::LINE_8);
+            cv::line(cv_ptr->image, orthogonal_marker_corners[i][3], orthogonal_marker_corners[i][0], color, thickness, cv::LINE_8);
         }
     }
 
     // Publish the orthognal marker corners to the topic "aruco/orthogonal_markers_loc"
     // As well as the original marker corners to the topic "aruco/markers_loc"
-    if (orthogonalMarkerCorners.size() > 0)
+    if (orthogonal_marker_corners.size() > 0)
     {
         operator_intent_msgs::marker_locations orthogonal_marker_locations;
         operator_intent_msgs::marker_locations marker_locations;
-        for (unsigned long int i = 0; i < orthogonalMarkerCorners.size(); i++){
+        for (unsigned long int i = 0; i < orthogonal_marker_corners.size(); i++){
             operator_intent_msgs::corner_array orthogonal_corner_array;
             operator_intent_msgs::corner_array corner_array;
-            orthogonal_corner_array.markerId = markerIds[i];
-            corner_array.markerId = markerIds[i];
+            orthogonal_corner_array.markerId = marker_ids[i];
+            corner_array.markerId = marker_ids[i];
             for (unsigned long int j = 0; j < 4; j++)
             {
-                operator_intent_msgs::point2d orthogonal_point2d;
-                operator_intent_msgs::point2d point2d;
-                orthogonal_point2d.x = orthogonalMarkerCorners[i][j].x;
-                orthogonal_point2d.y = orthogonalMarkerCorners[i][j].y;
-                orthogonal_corner_array.corner_points[j] = orthogonal_point2d;
-                point2d.x = markerCorners[i][j].x;
-                point2d.y = markerCorners[i][j].y;
-                corner_array.corner_points[j] = point2d;
+                operator_intent_msgs::point_2d orthogonal_point_2d;
+                operator_intent_msgs::point_2d point_2d;
+                orthogonal_point_2d.x = orthogonal_marker_corners[i][j].x;
+                orthogonal_point_2d.y = orthogonal_marker_corners[i][j].y;
+                orthogonal_corner_array.corner_points[j] = orthogonal_point_2d;
+                point_2d.x = marker_corners[i][j].x;
+                point_2d.y = marker_corners[i][j].y;
+                corner_array.corner_points[j] = point_2d;
             }
             orthogonal_marker_locations.header.stamp = ros::Time::now();
             marker_locations.header.stamp = ros::Time::now();
-            orthogonal_marker_locations.n_markers, marker_locations.n_markers = orthogonalMarkerCorners.size();
+            orthogonal_marker_locations.n_markers, marker_locations.n_markers = orthogonal_marker_corners.size();
             orthogonal_marker_locations.markers.push_back(orthogonal_corner_array);
             marker_locations.markers.push_back(corner_array);
 
         }
-        orthogonal_markers_loc_pub.publish(orthogonal_marker_locations);
-        markers_loc_pub.publish(marker_locations);
+        orthogonal_markers_loc_pub_.publish(orthogonal_marker_locations);
+        markers_loc_pub_.publish(marker_locations);
     }
 
     // Update GUI Window
@@ -189,26 +189,53 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
 }
 
-#if EXPLICIT_CONSTRUCTOR
-DetectAruco::DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic)
+DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
     :it_(nh_)
 {
-    m_sub_rgb_image_topic = sub_rgb_image_topic;
-    m_pub_topic = pub_topic;
+    sub_rgb_image_topic_ = "/camera/rgb/image_raw";
+    pub_topic_ = "/image_converter/output_video";
     // Subscribe to input video feed and publish output video feed
-    image_sub_ = it_.subscribe(m_sub_rgb_image_topic, 1,
+    image_sub_ = it_.subscribe(sub_rgb_image_topic_, 1,
       &DetectAruco::imageCallback, this);
-    image_pub_ = it_.advertise(m_pub_topic, 1);
-    markers_loc_pub = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
-    orthogonal_markers_loc_pub = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/orthogonal_markers_loc", 1);
+    image_pub_ = it_.advertise(pub_topic_, 1);
+    markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
+    orthogonal_markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/orthogonal_markers_loc", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
 }
-#endif
 
-#if EXPLICIT_DESTRUCTOR
+DetectAruco::DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic)
+    :it_(nh_)
+{
+    sub_rgb_image_topic_ = sub_rgb_image_topic;
+    pub_topic_ = pub_topic;
+    // Subscribe to input video feed and publish output video feed
+    image_sub_ = it_.subscribe(sub_rgb_image_topic_, 1,
+      &DetectAruco::imageCallback, this);
+    image_pub_ = it_.advertise(pub_topic_, 1);
+    markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
+    orthogonal_markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/orthogonal_markers_loc", 1);
+
+    cv::namedWindow(OPENCV_WINDOW);
+}
+
 DetectAruco::~DetectAruco()
 {
     cv::destroyWindow(OPENCV_WINDOW);
 }
-#endif
+
+
+// int main(int argc, char** argv)
+// {
+//   ros::init(argc, argv, "image_converter");
+//   std::string sub_topic = "/camera/rgb/image_raw";
+//   std::string pub_topic = "/image_converter/output_video";
+//   DetectAruco da(sub_topic, pub_topic);
+//   ros::spin();
+//   return 0;
+// }
+
+int main(int argc, char** argv)
+{
+    NodeMain<DetectAruco>(argc, argv, "DetectArucoNode");
+}
