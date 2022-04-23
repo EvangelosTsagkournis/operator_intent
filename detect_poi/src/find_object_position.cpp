@@ -6,7 +6,7 @@
 #include <sensor_msgs/Image.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <operator_intent_msgs/point2d.h>
+#include <operator_intent_msgs/point_2d.h>
 #include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
 #include <operator_intent_msgs/pixel_with_distance.h>
