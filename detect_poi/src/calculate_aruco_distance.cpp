@@ -130,12 +130,12 @@ bool isInside(Point polygon[], Point p)
 
 class CalculateArucoDistance
 {
+private:
   ros::NodeHandle nh_;
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
   message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub_;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub_;
   ros::Publisher pixel_coordinates_with_distance_collection_pub_;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
@@ -149,6 +149,8 @@ class CalculateArucoDistance
 
   int ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image);
 
+  bool intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r);
+
 public:
   CalculateArucoDistance();
   CalculateArucoDistance(ros::NodeHandle, ros::NodeHandle);
@@ -156,7 +158,6 @@ public:
 
   void callBack(
     const operator_intent_msgs::marker_locationsConstPtr &marker_locations,
-    const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations,
     const sensor_msgs::ImageConstPtr &image
   );
 };
@@ -167,13 +168,12 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
 {
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
-  orthogonal_marker_loc_sub_.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
   pixel_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::pixel_coordinates_with_distance_collection>("/aruco/pixel_coordinates_with_distance_collection", 1);
   //depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
-  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, orthogonal_marker_loc_sub_, depth_image_sub_);
-  sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2, _3));
+  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_);
+  sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2));
   ros::spin();
 
   /*
@@ -228,9 +228,27 @@ int CalculateArucoDistance::ReadDepthData(unsigned int height_pos, unsigned int 
    return -1;  // If depth data invalid
 }
 
+// Finds the intersection of two lines, or returns false.
+// The lines are defined by (o1, p1) and (o2, p2).
+bool CalculateArucoDistance::intersection(
+  cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r
+  )
+{
+    cv::Point2i x = o2 - o1;
+    cv::Point2i d1 = p1 - o1;
+    cv::Point2i d2 = p2 - o2;
+
+    float cross = d1.x*d2.y - d1.y*d2.x;
+    if (abs(cross) < /*EPS*/1e-8)
+        return false;
+
+    double t1 = (x.x * d2.y - x.y * d2.x)/cross;
+    r = o1 + d1 * t1;
+    return true;
+}
+
 void CalculateArucoDistance::callBack(
-  const operator_intent_msgs::marker_locationsConstPtr &marker_locations, 
-  const operator_intent_msgs::marker_locationsConstPtr &orthogonal_marker_locations, 
+  const operator_intent_msgs::marker_locationsConstPtr &marker_locations,
   const sensor_msgs::ImageConstPtr &image
   )
 {
@@ -249,64 +267,41 @@ void CalculateArucoDistance::callBack(
   cv_ptr->image.convertTo(norm_image, CV_32FC1, 1.0/5, 0);
   
   // Write the logic for the depth image average calculation
-  if (orthogonal_marker_locations->markers.size() > 0){
-    operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
-    // For each marker [0...n]:
-    for (unsigned long int i = 0; i < orthogonal_marker_locations->markers.size(); i++) {
-      operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
-      double sum = 0;
-      unsigned long count = 0;
-      Point marker[4];
-      int min_x;
-      int min_y;
-      int max_x;
-      int max_y;
-      // Set the minimum and maximum values of x and y to the coordinates of the current marker's first corner
-      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
-      marker[0].x = orthogonal_marker_locations->markers[i].corner_points[0].x;
-      min_x = marker[0].x;
-      max_x = marker[0].x;
-      marker[0].y= orthogonal_marker_locations->markers[i].corner_points[0].y;
-      min_y = marker[0].y;
-      max_y = marker[0].y;
-      // Additionally, set the marker[0]'s x and y to the first corner of the current marker
-
-      // For the four corners of each marker [1...3]:
-      for (unsigned long int j = 1; j < orthogonal_marker_locations->markers[i].corner_points.size(); j++) {
-        marker[j].x = marker_locations->markers[i].corner_points[j].x;
-        marker[j].y = marker_locations->markers[i].corner_points[j].y;
-        if (min_x > orthogonal_marker_locations->markers[i].corner_points[j].x) min_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
-        if (max_x < orthogonal_marker_locations->markers[i].corner_points[j].x) max_x = orthogonal_marker_locations->markers[i].corner_points[j].x;
-        if (min_y > orthogonal_marker_locations->markers[i].corner_points[j].y) min_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
-        if (max_y < orthogonal_marker_locations->markers[i].corner_points[j].y) max_y = orthogonal_marker_locations->markers[i].corner_points[j].y;
-      }
-      // std::cout << "Marker #" << i << std::endl;
-      // std::cout << "Min x: " << min_x << std::endl;
-      // std::cout << "Max x: " << max_x << std::endl;
-      // std::cout << "Min y: " << min_y << std::endl;
-      // std::cout << "Max y: " << max_y << std::endl;
-
-      Point pixel;
-      pixel.x = (min_x + max_x) / 2;
-      pixel.y = (min_y + max_y) / 2;
-
-      pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image);
+  operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
+  // For each marker [0...n]:
+  for (unsigned long int i = 0; i < marker_locations->markers.size(); i++) {
+    operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
+    double sum = 0;
+    unsigned long count = 0;
+    Point marker[4];
+    for (unsigned long int j = 0; j < marker_locations->markers[i].corner_points.size(); j++){
+      marker[j].x = marker_locations->markers[i].corner_points[j].x;
+      marker[j].y = marker_locations->markers[i].corner_points[j].y;
+    }
+    cv::Point2i marker_points[4];
+    cv::Point2i intersection_point_cv;
+    for (int j = 0; j < (sizeof(marker)/sizeof(marker[0])); j++){
+      marker_points[j] = cv::Point2i(marker[j].x, marker[j].y);
+    }
+    Point intersection_point;
+    if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point_cv)){
+      std::cout << "The intersection point for marker id#" << marker_locations->markers[i].markerId << " has coordinates: x = " << intersection_point_cv.x << ", y = " << intersection_point_cv.y << std::endl;
+      pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)intersection_point_cv.y, (unsigned int) intersection_point_cv.x, image);
       std::cout 
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
         << (int)pixel_coordinates_with_distance.distance
         << " mm" << std::endl;
-      pixel_coordinates_with_distance.pixel_x = pixel.x;
-      pixel_coordinates_with_distance.pixel_y = pixel.y;
+      pixel_coordinates_with_distance.pixel_x = intersection_point_cv.x;
+      pixel_coordinates_with_distance.pixel_y = intersection_point_cv.y;
       pixel_coordinates_with_distance_collection.pixels.push_back(pixel_coordinates_with_distance);
     }
-    pixel_coordinates_with_distance_collection.header.stamp = ros::Time::now();
-    pixel_coordinates_with_distance_collection.camera_height = image->height;
-    pixel_coordinates_with_distance_collection.camera_width = image->width;
-    
-    pixel_coordinates_with_distance_collection_pub_.publish(pixel_coordinates_with_distance_collection);
-
   }
+  pixel_coordinates_with_distance_collection.header.stamp = ros::Time::now();
+  pixel_coordinates_with_distance_collection.camera_height = image->height;
+  pixel_coordinates_with_distance_collection.camera_width = image->width;
+  
+  pixel_coordinates_with_distance_collection_pub_.publish(pixel_coordinates_with_distance_collection);
 }
 
 int main(int argc, char **argv) {
