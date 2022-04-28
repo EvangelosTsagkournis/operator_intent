@@ -45,7 +45,6 @@ private:
     void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
 public:
-    DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic);
     DetectAruco(ros::NodeHandle, ros::NodeHandle);
     ~DetectAruco();
 };
@@ -201,20 +200,6 @@ DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
     cv::namedWindow(OPENCV_WINDOW);
 }
 
-DetectAruco::DetectAruco(std::string sub_rgb_image_topic, std::string pub_topic)
-    :it_(nh_)
-{
-    sub_rgb_image_topic_ = sub_rgb_image_topic;
-    pub_topic_ = pub_topic;
-    // Subscribe to input video feed and publish output video feed
-    image_sub_ = it_.subscribe(sub_rgb_image_topic_, 1,
-      &DetectAruco::imageCallback, this);
-    image_pub_ = it_.advertise(pub_topic_, 1);
-    markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
-    orthogonal_markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/orthogonal_markers_loc", 1);
-
-    cv::namedWindow(OPENCV_WINDOW);
-}
 
 DetectAruco::~DetectAruco()
 {
