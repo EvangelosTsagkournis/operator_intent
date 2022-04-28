@@ -12,8 +12,8 @@ add_message_files(
   point_2d.msg
   corner_array.msg
   marker_locations.msg
-  pixel_with_distance.msg
-  pixel_array.msg
+  pixel_coordinates_with_distance.msg
+  pixel_coordinates_with_distance_collection.msg
 )
 
 generate_messages(

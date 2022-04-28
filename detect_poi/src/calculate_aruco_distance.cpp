@@ -9,8 +9,8 @@
 #include <operator_intent_msgs/point_2d.h>
 #include <operator_intent_msgs/corner_array.h>
 #include <operator_intent_msgs/marker_locations.h>
-#include <operator_intent_msgs/pixel_with_distance.h>
-#include <operator_intent_msgs/pixel_array.h>
+#include <operator_intent_msgs/pixel_coordinates_with_distance.h>
+#include <operator_intent_msgs/pixel_coordinates_with_distance_collection.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -136,7 +136,7 @@ class CalculateArucoDistance
   image_transport::Publisher image_pub_;
   message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub_;
   message_filters::Subscriber<operator_intent_msgs::marker_locations> orthogonal_marker_loc_sub_;
-  ros::Publisher pixel_array_pub_;
+  ros::Publisher pixel_coordinates_with_distance_collection_pub_;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
 
@@ -168,7 +168,7 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
   orthogonal_marker_loc_sub_.subscribe(nh_, "/aruco/orthogonal_markers_loc", 1);
-  pixel_array_pub_ = nh_.advertise<operator_intent_msgs::pixel_array>("/aruco/pixel_array", 1);
+  pixel_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::pixel_coordinates_with_distance_collection>("/aruco/pixel_coordinates_with_distance_collection", 1);
   //depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
@@ -250,10 +250,10 @@ void CalculateArucoDistance::callBack(
   
   // Write the logic for the depth image average calculation
   if (orthogonal_marker_locations->markers.size() > 0){
-    operator_intent_msgs::pixel_array pixel_array;
+    operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
     // For each marker [0...n]:
     for (unsigned long int i = 0; i < orthogonal_marker_locations->markers.size(); i++) {
-      operator_intent_msgs::pixel_with_distance pixel_with_distance;
+      operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
       double sum = 0;
       unsigned long count = 0;
       Point marker[4];
@@ -290,21 +290,21 @@ void CalculateArucoDistance::callBack(
       pixel.x = (min_x + max_x) / 2;
       pixel.y = (min_y + max_y) / 2;
 
-      pixel_with_distance.distance = ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image);
+      pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)pixel.y, (unsigned int) pixel.x, image);
       std::cout 
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
-        << (int)pixel_with_distance.distance
+        << (int)pixel_coordinates_with_distance.distance
         << " mm" << std::endl;
-      pixel_with_distance.pixel_x = pixel.x;
-      pixel_with_distance.pixel_y = pixel.y;
-      pixel_array.pixels.push_back(pixel_with_distance);
+      pixel_coordinates_with_distance.pixel_x = pixel.x;
+      pixel_coordinates_with_distance.pixel_y = pixel.y;
+      pixel_coordinates_with_distance_collection.pixels.push_back(pixel_coordinates_with_distance);
     }
-    pixel_array.header.stamp = ros::Time::now();
-    pixel_array.camera_height = image->height;
-    pixel_array.camera_width = image->width;
+    pixel_coordinates_with_distance_collection.header.stamp = ros::Time::now();
+    pixel_coordinates_with_distance_collection.camera_height = image->height;
+    pixel_coordinates_with_distance_collection.camera_width = image->width;
     
-    pixel_array_pub_.publish(pixel_array);
+    pixel_coordinates_with_distance_collection_pub_.publish(pixel_coordinates_with_distance_collection);
 
   }
 }
