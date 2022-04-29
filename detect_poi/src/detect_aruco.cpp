@@ -7,9 +7,9 @@
 #include <opencv2/highgui/highgui.hpp>
 
 // Custom msg
-#include <operator_intent_msgs/point_2d.h>
-#include <operator_intent_msgs/corner_array.h>
-#include <operator_intent_msgs/marker_locations.h>
+#include <operator_intent_msgs/point_2dc.h>
+#include <operator_intent_msgs/marker.h>
+#include <operator_intent_msgs/marker_collection.h>
 
 // Aruco relevant libraries
 #include <opencv2/aruco.hpp>
@@ -71,22 +71,22 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     // dimensions of the marker_corners array is Nx4, where N is the number of tags detected)
 
     // Publish the marker corners to the topic "aruco/markers_loc"
-    operator_intent_msgs::marker_locations marker_locations;
+    operator_intent_msgs::marker_collection marker_collection;
     for (unsigned long int i = 0; i < marker_corners.size(); i++){
-        operator_intent_msgs::corner_array corner_array;
-        corner_array.markerId = marker_ids[i];
+        operator_intent_msgs::marker marker;
+        marker.markerId = marker_ids[i];
         for (unsigned long int j = 0; j < 4; j++)
         {
-            operator_intent_msgs::point_2d point_2d;
-            point_2d.x = marker_corners[i][j].x;
-            point_2d.y = marker_corners[i][j].y;
-            corner_array.corner_points[j] = point_2d;
+            operator_intent_msgs::point_2dc point_2dc;
+            point_2dc.x = marker_corners[i][j].x;
+            point_2dc.y = marker_corners[i][j].y;
+            marker.corner_points[j] = point_2dc;
         }
-        // marker_locations.header.stamp = ros::Time::now();
-        marker_locations.markers.push_back(corner_array);
+        // marker_collection.header.stamp = ros::Time::now();
+        marker_collection.markers.push_back(marker);
     }
-    marker_locations.header.stamp = ros::Time::now();
-    markers_loc_pub_.publish(marker_locations);
+    marker_collection.header.stamp = ros::Time::now();
+    markers_loc_pub_.publish(marker_collection);
 
     // Update GUI Window
     cv::imshow(OPENCV_WINDOW, cv_ptr->image);
@@ -106,7 +106,7 @@ DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
     image_sub_ = it_.subscribe(sub_rgb_image_topic_, 1,
       &DetectAruco::imageCallback, this);
     image_pub_ = it_.advertise(pub_topic_, 1);
-    markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_locations>("aruco/markers_loc", 1);
+    markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_collection>("aruco/markers_loc", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
 }

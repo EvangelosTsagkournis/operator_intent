@@ -6,9 +6,9 @@
 #include <sensor_msgs/Image.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <operator_intent_msgs/point_2d.h>
-#include <operator_intent_msgs/corner_array.h>
-#include <operator_intent_msgs/marker_locations.h>
+#include <operator_intent_msgs/point_2dc.h>
+#include <operator_intent_msgs/marker.h>
+#include <operator_intent_msgs/marker_collection.h>
 #include <operator_intent_msgs/pixel_coordinates_with_distance.h>
 #include <operator_intent_msgs/pixel_coordinates_with_distance_collection.h>
 #include <message_filters/subscriber.h>
@@ -135,7 +135,7 @@ private:
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
-  message_filters::Subscriber<operator_intent_msgs::marker_locations> marker_loc_sub_;
+  message_filters::Subscriber<operator_intent_msgs::marker_collection> marker_loc_sub_;
   ros::Publisher pixel_coordinates_with_distance_collection_pub_;
 
   typedef image_transport::SubscriberFilter ImageSubscriber;
@@ -157,7 +157,7 @@ public:
   ~CalculateArucoDistance();
 
   void callBack(
-    const operator_intent_msgs::marker_locationsConstPtr &marker_locations,
+    const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
     const sensor_msgs::ImageConstPtr &image
   );
 };
@@ -171,7 +171,7 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
   pixel_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::pixel_coordinates_with_distance_collection>("/aruco/pixel_coordinates_with_distance_collection", 1);
   //depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
-  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_locations, sensor_msgs::Image> MySyncPolicy;
+  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_collection, sensor_msgs::Image> MySyncPolicy;
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_);
   sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2));
   ros::spin();
@@ -248,7 +248,7 @@ bool CalculateArucoDistance::intersection(
 }
 
 void CalculateArucoDistance::callBack(
-  const operator_intent_msgs::marker_locationsConstPtr &marker_locations,
+  const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
   const sensor_msgs::ImageConstPtr &image
   )
 {
@@ -269,14 +269,14 @@ void CalculateArucoDistance::callBack(
   // Write the logic for the depth image average calculation
   operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
   // For each marker [0...n]:
-  for (unsigned long int i = 0; i < marker_locations->markers.size(); i++) {
+  for (unsigned long int i = 0; i < marker_collection->markers.size(); i++) {
     operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
     double sum = 0;
     unsigned long count = 0;
     Point marker[4];
-    for (unsigned long int j = 0; j < /*4*/marker_locations->markers[i].corner_points.size(); j++){
-      marker[j].x = marker_locations->markers[i].corner_points[j].x;
-      marker[j].y = marker_locations->markers[i].corner_points[j].y;
+    for (unsigned long int j = 0; j < /*4*/marker_collection->markers[i].corner_points.size(); j++){
+      marker[j].x = marker_collection->markers[i].corner_points[j].x;
+      marker[j].y = marker_collection->markers[i].corner_points[j].y;
     }
     cv::Point2i marker_points[4];
     cv::Point2i intersection_point_cv;
@@ -285,11 +285,11 @@ void CalculateArucoDistance::callBack(
     }
     Point intersection_point;
     if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point_cv)){
-      std::cout << "The intersection point for marker id#" << marker_locations->markers[i].markerId << " has coordinates: x = " << intersection_point_cv.x << ", y = " << intersection_point_cv.y << std::endl;
+      std::cout << "The intersection point for marker id#" << marker_collection->markers[i].markerId << " has coordinates: x = " << intersection_point_cv.x << ", y = " << intersection_point_cv.y << std::endl;
       pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)intersection_point_cv.y, (unsigned int) intersection_point_cv.x, image);
       std::cout 
         << "The average depth for the marker #" 
-        << i <<  " and id: " << marker_locations->markers[i].markerId << " is: "
+        << i <<  " and id: " << marker_collection->markers[i].markerId << " is: "
         << (int)pixel_coordinates_with_distance.distance
         << " mm" << std::endl;
       pixel_coordinates_with_distance.pixel_x = intersection_point_cv.x;

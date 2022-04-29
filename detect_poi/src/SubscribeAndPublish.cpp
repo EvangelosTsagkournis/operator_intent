@@ -4,7 +4,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
-#include <operator_intent_msgs/marker_locations.h>
+#include <operator_intent_msgs/marker_collection.h>
 #include "node_template.cpp"
 
 
