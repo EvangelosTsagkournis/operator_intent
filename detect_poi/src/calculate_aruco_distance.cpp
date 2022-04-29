@@ -274,7 +274,7 @@ void CalculateArucoDistance::callBack(
     double sum = 0;
     unsigned long count = 0;
     Point marker[4];
-    for (unsigned long int j = 0; j < marker_locations->markers[i].corner_points.size(); j++){
+    for (unsigned long int j = 0; j < /*4*/marker_locations->markers[i].corner_points.size(); j++){
       marker[j].x = marker_locations->markers[i].corner_points[j].x;
       marker[j].y = marker_locations->markers[i].corner_points[j].y;
     }

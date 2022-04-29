@@ -82,11 +82,10 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
             point_2d.y = marker_corners[i][j].y;
             corner_array.corner_points[j] = point_2d;
         }
-        marker_locations.header.stamp = ros::Time::now();
-        marker_locations.n_markers = marker_corners.size();
+        // marker_locations.header.stamp = ros::Time::now();
         marker_locations.markers.push_back(corner_array);
-
     }
+    marker_locations.header.stamp = ros::Time::now();
     markers_loc_pub_.publish(marker_locations);
 
     // Update GUI Window
