@@ -288,8 +288,11 @@ void CalculateArucoDistance::callBack(
     }
     Point intersection_point;
     if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point_cv)){
-      std::cout << "The intersection point for marker id#" << marker_collection->markers[i].markerId << " has coordinates: x = " << intersection_point_cv.x << ", y = " << intersection_point_cv.y << std::endl;
       pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)intersection_point_cv.y, (unsigned int) intersection_point_cv.x, image);
+      std::cout 
+        << "The intersection point for marker id#" << marker_collection->markers[i].markerId
+        << " has coordinates: x = " << intersection_point_cv.x << ", y = " 
+        << intersection_point_cv.y << std::endl;
       std::cout 
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_collection->markers[i].markerId << " is: "

@@ -15,7 +15,6 @@
 #include <opencv2/aruco.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp> // <-- was not needed, as it's already included in line 13
-#include <iostream>
 
 // Node template
 #include "node_template.cpp"
