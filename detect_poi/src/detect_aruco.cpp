@@ -6,7 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-// Custom msg
+// Custom msgs
 #include <operator_intent_msgs/point_2dc.h>
 #include <operator_intent_msgs/marker.h>
 #include <operator_intent_msgs/marker_collection.h>
@@ -17,6 +17,7 @@
 #include <opencv2/highgui.hpp> // <-- was not needed, as it's already included in line 13
 #include <iostream>
 
+// Node template
 #include "node_template.cpp"
 
 
