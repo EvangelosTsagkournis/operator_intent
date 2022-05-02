@@ -17,6 +17,7 @@
 #include <operator_intent_msgs/pixel_coordinates_with_distance.h>
 #include <operator_intent_msgs/pixel_coordinates_with_distance_collection.h>
 
+#include <cmath>
 #include <iostream>
 
 // Node template
@@ -30,7 +31,11 @@
 // Found by searching for the kinect_camera.urdf.xacro file in husky/husky_description/urdf/accessories
 #define KINECT_CAMERA_HORIZONTAL_FOV_DEG 70
 
-class CalculateArucoDistance
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
+
+
+class CalculateArucoDistanceAndAngle
 {
 private:
   ros::NodeHandle nh_;
@@ -54,14 +59,15 @@ private:
   bool doIntersect(cv::Point2i, cv::Point2i, cv::Point2i, cv::Point2i);
   bool isInside(cv::Point2i[], cv::Point2i);
 
-  int ReadDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
+  int readDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
+  double findAngleInRadians(cv::Point2i);
 
   bool intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r);
 
 public:
-  CalculateArucoDistance();
-  CalculateArucoDistance(ros::NodeHandle, ros::NodeHandle);
-  ~CalculateArucoDistance();
+  CalculateArucoDistanceAndAngle();
+  CalculateArucoDistanceAndAngle(ros::NodeHandle, ros::NodeHandle);
+  ~CalculateArucoDistanceAndAngle();
 
   void callBack(
     const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
@@ -69,7 +75,7 @@ public:
   );
 };
 
-CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHandle pnh) :
+CalculateArucoDistanceAndAngle::CalculateArucoDistanceAndAngle(ros::NodeHandle nh, ros::NodeHandle pnh) :
   it_(nh_),
   depth_image_sub_(it_, "camera/depth/image_raw", 1)
 {
@@ -80,23 +86,23 @@ CalculateArucoDistance::CalculateArucoDistance(ros::NodeHandle nh, ros::NodeHand
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_collection, sensor_msgs::Image> MySyncPolicy;
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_);
-  sync.registerCallback(boost::bind(&CalculateArucoDistance::callBack, this, _1, _2));
+  sync.registerCallback(boost::bind(&CalculateArucoDistanceAndAngle::callBack, this, _1, _2));
   ros::spin();
 
   /*
   image_sub_ = it_.subscribe("/camera/depth/image_raw", 1,
-    &CalculateArucoDistance::callBack, this);
+    &CalculateArucoDistanceAndAngle::callBack, this);
   image_pub_ = it_.advertise("/image_converter/output_video", 1);
   */
 }
 
-CalculateArucoDistance::~CalculateArucoDistance() 
+CalculateArucoDistanceAndAngle::~CalculateArucoDistanceAndAngle() 
 {
 }
 
 // Given three collinear points p, q, r, the function checks if 
 // point q lies on line segment 'pr' 
-bool CalculateArucoDistance::onSegment(cv::Point2i p, cv::Point2i q, cv::Point2i r) 
+bool CalculateArucoDistanceAndAngle::onSegment(cv::Point2i p, cv::Point2i q, cv::Point2i r) 
 { 
   if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y))
     return true; 
@@ -108,7 +114,7 @@ bool CalculateArucoDistance::onSegment(cv::Point2i p, cv::Point2i q, cv::Point2i
 // 0 --> p, q and r are collinear 
 // 1 --> Clockwise 
 // 2 --> Counterclockwise 
-int CalculateArucoDistance::orientation(cv::Point2i p, cv::Point2i q, cv::Point2i r) 
+int CalculateArucoDistanceAndAngle::orientation(cv::Point2i p, cv::Point2i q, cv::Point2i r) 
 { 
     int val = (q.y - p.y) * (r.x - q.x) - 
             (q.x - p.x) * (r.y - q.y); 
@@ -119,7 +125,7 @@ int CalculateArucoDistance::orientation(cv::Point2i p, cv::Point2i q, cv::Point2
  
 // The function that returns true if line segment 'p1q1' 
 // and 'p2q2' intersect. 
-bool CalculateArucoDistance::doIntersect(cv::Point2i p1, cv::Point2i q1, cv::Point2i p2, cv::Point2i q2) 
+bool CalculateArucoDistanceAndAngle::doIntersect(cv::Point2i p1, cv::Point2i q1, cv::Point2i p2, cv::Point2i q2) 
 { 
     // Find the four orientations needed for general and 
     // special cases 
@@ -149,7 +155,7 @@ bool CalculateArucoDistance::doIntersect(cv::Point2i p1, cv::Point2i q1, cv::Poi
 } 
  
 // Returns true if the point p lies inside the polygon[] with n vertices 
-bool CalculateArucoDistance::isInside(cv::Point2i polygon[], cv::Point2i p) 
+bool CalculateArucoDistanceAndAngle::isInside(cv::Point2i polygon[], cv::Point2i p) 
 { 
     int n = sizeof(polygon) / sizeof(polygon[0]);
     // There must be at least 3 vertices in polygon[] 
@@ -183,7 +189,7 @@ bool CalculateArucoDistance::isInside(cv::Point2i polygon[], cv::Point2i p)
     return count&1; // Same as (count%2 == 1) 
 }
 
-int CalculateArucoDistance::ReadDepthData(cv::Point2i intersection_point, sensor_msgs::ImageConstPtr depth_image)
+int CalculateArucoDistanceAndAngle::readDepthData(cv::Point2i intersection_point, sensor_msgs::ImageConstPtr depth_image)
 {
    // If position is invalid
     if ((intersection_point.y >= depth_image->height) || (intersection_point.x >= depth_image->width))
@@ -225,9 +231,17 @@ int CalculateArucoDistance::ReadDepthData(cv::Point2i intersection_point, sensor
    return -1;  // If depth data invalid
 }
 
+double CalculateArucoDistanceAndAngle::findAngleInRadians(cv::Point2i intersection_point){
+  cv::Point2i middle_pixel(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+  double degrees_per_pixel = (double)KINECT_CAMERA_HORIZONTAL_FOV_DEG/(double)SCREEN_WIDTH;
+  int difference_in_x = middle_pixel.x - intersection_point.x;
+  double angleInDegrees = degrees_per_pixel*(middle_pixel.x - intersection_point.x);
+  return angleInDegrees*M_PI/180;
+}
+
 // Finds the intersection of two lines, or returns false.
 // The lines are defined by (o1, p1) and (o2, p2).
-bool CalculateArucoDistance::intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r)
+bool CalculateArucoDistanceAndAngle::intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r)
 {
     cv::Point2i x = o2 - o1;
     cv::Point2i d1 = p1 - o1;
@@ -242,7 +256,7 @@ bool CalculateArucoDistance::intersection(cv::Point2i o1, cv::Point2i p1, cv::Po
     return true;
 }
 
-void CalculateArucoDistance::callBack(
+void CalculateArucoDistanceAndAngle::callBack(
   const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
   const sensor_msgs::ImageConstPtr &image
   )
@@ -279,17 +293,19 @@ void CalculateArucoDistance::callBack(
       marker_points[j] = cv::Point2i(marker[j].x, marker[j].y);
     }
     if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point)){
-      pixel_coordinates_with_distance.distance = ReadDepthData(intersection_point, image);
+      pixel_coordinates_with_distance.distance = readDepthData(intersection_point, image);
+      pixel_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
       /*
       std::cout 
         << "The intersection point for marker id#" << marker_collection->markers[i].markerId
         << " has coordinates: x = " << intersection_point.x << ", y = " 
         << intersection_point.y << std::endl;
       std::cout 
-        << "The average depth for the marker #" 
+        << "The depth for the marker #" 
         << i <<  " and id: " << marker_collection->markers[i].markerId << " is: "
         << (int)pixel_coordinates_with_distance.distance
-        << " mm" << std::endl;
+        << " mm" <<  " and the angle from the camera POV is: " 
+        << pixel_coordinates_with_distance.angle_radians << std::endl;
       */
       pixel_coordinates_with_distance.pixel_x = intersection_point.x;
       pixel_coordinates_with_distance.pixel_y = intersection_point.y;
@@ -304,5 +320,5 @@ void CalculateArucoDistance::callBack(
 }
 
 int main(int argc, char **argv) {
-  NodeMain<CalculateArucoDistance>(argc, argv, "CalculateArucoDistanceNode");
+  NodeMain<CalculateArucoDistanceAndAngle>(argc, argv, "CalculateArucoDistanceAndAngleNode");
 }

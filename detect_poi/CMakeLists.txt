@@ -153,7 +153,7 @@ include_directories(
 add_executable(generate_markers src/generate_markers.cpp)
 add_executable(depth_node src/depth_node.cpp)
 add_executable(detect_aruco_node src/detect_aruco.cpp)
-add_executable(calculate_aruco_distance_node src/calculate_aruco_distance.cpp)
+add_executable(calculate_aruco_distance_node src/calculate_aruco_distance_and_angle.cpp)
 add_executable(approximate_time src/approximate_time.cpp)
 add_executable(testnode src/SubscribeAndPublish.cpp)
 
