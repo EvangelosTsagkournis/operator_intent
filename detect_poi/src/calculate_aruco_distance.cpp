@@ -27,6 +27,8 @@
 // Define Infinite (Using INT_MAX caused overflow problems) 
 #define INF 10000
 
+// Found by searching for the kinect_camera.urdf.xacro file in husky/husky_description/urdf/accessories
+#define KINECT_CAMERA_HORIZONTAL_FOV_DEG 70
 
 class CalculateArucoDistance
 {
@@ -52,7 +54,7 @@ private:
   bool doIntersect(cv::Point2i, cv::Point2i, cv::Point2i, cv::Point2i);
   bool isInside(cv::Point2i[], cv::Point2i);
 
-  int ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image);
+  int ReadDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
 
   bool intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r);
 
@@ -181,11 +183,12 @@ bool CalculateArucoDistance::isInside(cv::Point2i polygon[], cv::Point2i p)
     return count&1; // Same as (count%2 == 1) 
 }
 
-int CalculateArucoDistance::ReadDepthData(unsigned int height_pos, unsigned int width_pos, sensor_msgs::ImageConstPtr depth_image){
+int CalculateArucoDistance::ReadDepthData(cv::Point2i intersection_point, sensor_msgs::ImageConstPtr depth_image)
+{
    // If position is invalid
-    if ((height_pos >= depth_image->height) || (width_pos >= depth_image->width))
+    if ((intersection_point.y >= depth_image->height) || (intersection_point.x >= depth_image->width))
         return -1;
-    int index = (height_pos*depth_image->step) + (width_pos*(depth_image->step/depth_image->width));
+    int index = (intersection_point.y*depth_image->step) + (intersection_point.x*(depth_image->step/depth_image->width));
     // If data is 4 byte floats (rectified depth image)
     if ((depth_image->step/depth_image->width) == 4) {
         U_FloatConvert depth_data;
@@ -224,9 +227,7 @@ int CalculateArucoDistance::ReadDepthData(unsigned int height_pos, unsigned int 
 
 // Finds the intersection of two lines, or returns false.
 // The lines are defined by (o1, p1) and (o2, p2).
-bool CalculateArucoDistance::intersection(
-  cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r
-  )
+bool CalculateArucoDistance::intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r)
 {
     cv::Point2i x = o2 - o1;
     cv::Point2i d1 = p1 - o1;
@@ -273,24 +274,25 @@ void CalculateArucoDistance::callBack(
       marker[j].y = marker_collection->markers[i].corner_points[j].y;
     }
     cv::Point2i marker_points[4];
-    cv::Point2i intersection_point_cv;
+    cv::Point2i intersection_point;
     for (int j = 0; j < (sizeof(marker)/sizeof(marker[0])); j++){
       marker_points[j] = cv::Point2i(marker[j].x, marker[j].y);
     }
-    cv::Point2i intersection_point;
-    if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point_cv)){
-      pixel_coordinates_with_distance.distance = ReadDepthData((unsigned int)intersection_point_cv.y, (unsigned int) intersection_point_cv.x, image);
+    if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point)){
+      pixel_coordinates_with_distance.distance = ReadDepthData(intersection_point, image);
+      /*
       std::cout 
         << "The intersection point for marker id#" << marker_collection->markers[i].markerId
-        << " has coordinates: x = " << intersection_point_cv.x << ", y = " 
-        << intersection_point_cv.y << std::endl;
+        << " has coordinates: x = " << intersection_point.x << ", y = " 
+        << intersection_point.y << std::endl;
       std::cout 
         << "The average depth for the marker #" 
         << i <<  " and id: " << marker_collection->markers[i].markerId << " is: "
         << (int)pixel_coordinates_with_distance.distance
         << " mm" << std::endl;
-      pixel_coordinates_with_distance.pixel_x = intersection_point_cv.x;
-      pixel_coordinates_with_distance.pixel_y = intersection_point_cv.y;
+      */
+      pixel_coordinates_with_distance.pixel_x = intersection_point.x;
+      pixel_coordinates_with_distance.pixel_y = intersection_point.y;
       pixel_coordinates_with_distance_collection.pixels.push_back(pixel_coordinates_with_distance);
     }
   }
