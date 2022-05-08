@@ -42,17 +42,14 @@ private:
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
+  image_transport::SubscriberFilter depth_image_sub_;
   message_filters::Subscriber<operator_intent_msgs::marker_collection> marker_loc_sub_;
   ros::Publisher pixel_coordinates_with_distance_collection_pub_;
-
-  typedef image_transport::SubscriberFilter ImageSubscriber;
 
   typedef union U_FloatParse {
     float float_data;
     unsigned char byte_data[4];
   } U_FloatConvert;
-
-  ImageSubscriber depth_image_sub_;
 
   bool onSegment(cv::Point2i, cv::Point2i, cv::Point2i);
   int orientation(cv::Point2i, cv::Point2i, cv::Point2i);
@@ -88,12 +85,6 @@ CalculateArucoDistanceAndAngle::CalculateArucoDistanceAndAngle(ros::NodeHandle n
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_);
   sync.registerCallback(boost::bind(&CalculateArucoDistanceAndAngle::callBack, this, _1, _2));
   ros::spin();
-
-  /*
-  image_sub_ = it_.subscribe("/camera/depth/image_raw", 1,
-    &CalculateArucoDistanceAndAngle::callBack, this);
-  image_pub_ = it_.advertise("/image_converter/output_video", 1);
-  */
 }
 
 CalculateArucoDistanceAndAngle::~CalculateArucoDistanceAndAngle() 
