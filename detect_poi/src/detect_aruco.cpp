@@ -72,7 +72,7 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
     // Publish the marker corners to the topic "aruco/markers_loc"
     operator_intent_msgs::marker_collection marker_collection;
-    for (unsigned long int i = 0; i < marker_corners.size(); i++){
+    for (unsigned long int i = 0; i < marker_ids.size(); i++){
         operator_intent_msgs::marker marker;
         marker.markerId = marker_ids[i];
         for (unsigned long int j = 0; j < 4; j++)
