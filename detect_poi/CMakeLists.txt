@@ -153,9 +153,10 @@ include_directories(
 add_executable(generate_markers src/generate_markers.cpp)
 add_executable(depth_node src/depth_node.cpp)
 add_executable(detect_aruco_node src/detect_aruco.cpp)
-add_executable(calculate_aruco_distance_angle_node src/calculate_aruco_distance_and_angle.cpp)
+add_executable(calculate_object_distance_angle_node src/calculate_object_distance_and_angle.cpp)
 add_executable(approximate_time src/approximate_time.cpp)
 add_executable(testnode src/SubscribeAndPublish.cpp)
+add_executable(consolidated_aruco_node src/consolidated_aruco_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -167,9 +168,10 @@ add_executable(testnode src/SubscribeAndPublish.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(detect_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(calculate_aruco_distance_angle_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(calculate_object_distance_angle_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(approximate_time ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(testnode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(consolidated_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(generate_markers
@@ -186,7 +188,7 @@ target_link_libraries(detect_aruco_node
     ${OpenCV_LIBRARIES}
 )
 
-target_link_libraries(calculate_aruco_distance_angle_node
+target_link_libraries(calculate_object_distance_angle_node
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )
@@ -197,6 +199,11 @@ target_link_libraries(approximate_time
 
 target_link_libraries(testnode
     ${catkin_LIBRARIES}
+)
+
+target_link_libraries(consolidated_aruco_node
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
 )
 
 
