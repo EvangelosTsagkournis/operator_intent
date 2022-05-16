@@ -21,8 +21,8 @@
 
 #include "node_template.cpp"
 
-class FindObjectPosition {
+class FindObjectPosition
+{
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
-    
 };

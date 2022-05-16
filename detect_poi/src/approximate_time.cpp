@@ -6,13 +6,13 @@
 using namespace sensor_msgs;
 using namespace message_filters;
 
-void callback(const ImageConstPtr& image1, const ImageConstPtr& image2)
+void callback(const ImageConstPtr &image1, const ImageConstPtr &image2)
 {
   // Solve all of perception here...
   std::cout << "Hello from the callback function! You've done it!" << std::endl;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   ros::init(argc, argv, "vision_node");
 

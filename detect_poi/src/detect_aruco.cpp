@@ -19,7 +19,6 @@
 // Node template
 #include "node_template.cpp"
 
-
 class DetectAruco
 {
 private:
@@ -33,7 +32,7 @@ private:
 
     // Initialize vectors for the ID's of the markers and the marker corners
     std::vector<int> marker_ids;
-    std::vector<std::vector<cv::Point2f> > marker_corners;
+    std::vector<std::vector<cv::Point2f>> marker_corners;
 
     // The below are commented out, as they are only for the rejected candidates for tags
     // std::vector<std::vector<cv::Point2f>> marker_corners, rejectedCandidates;
@@ -41,22 +40,21 @@ private:
 
     // Define the dictionary to be detected
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+    void imageCallback(const sensor_msgs::ImageConstPtr &msg);
 
 public:
     DetectAruco(ros::NodeHandle, ros::NodeHandle);
     ~DetectAruco();
 };
 
-
-void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
+void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     cv_bridge::CvImagePtr cv_ptr;
     try
     {
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     }
-    catch (cv_bridge::Exception& e)
+    catch (cv_bridge::Exception &e)
     {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
@@ -72,7 +70,8 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
     // Publish the marker corners to the topic "aruco/markers_loc"
     operator_intent_msgs::marker_collection marker_collection;
-    for (unsigned long int i = 0; i < marker_ids.size(); i++){
+    for (unsigned long int i = 0; i < marker_ids.size(); i++)
+    {
         operator_intent_msgs::marker marker;
         marker.markerId = marker_ids[i];
         for (unsigned long int j = 0; j < 4; j++)
@@ -93,30 +92,27 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv::waitKey(3);
 
     // Output modified video stream
-    //image_pub_.publish(cv_ptr->toImageMsg());
-
+    // image_pub_.publish(cv_ptr->toImageMsg());
 }
 
 DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
-    :it_(nh_)
+    : it_(nh_)
 {
     sub_rgb_image_topic_ = "/camera/rgb/image_raw";
     pub_topic_ = "/image_converter/output_video";
     // Subscribe to input video feed and publish output video feed
     image_sub_ = it_.subscribe(sub_rgb_image_topic_, 1,
-      &DetectAruco::imageCallback, this);
+                               &DetectAruco::imageCallback, this);
     image_pub_ = it_.advertise(pub_topic_, 1);
     markers_loc_pub_ = nh_.advertise<operator_intent_msgs::marker_collection>("aruco/markers_loc", 1);
 
     cv::namedWindow(OPENCV_WINDOW);
 }
 
-
 DetectAruco::~DetectAruco()
 {
     cv::destroyWindow(OPENCV_WINDOW);
 }
-
 
 // int main(int argc, char** argv)
 // {
@@ -128,7 +124,7 @@ DetectAruco::~DetectAruco()
 //   return 0;
 // }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     NodeMain<DetectAruco>(argc, argv, "DetectArucoNode");
 }
