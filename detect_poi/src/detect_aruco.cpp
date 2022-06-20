@@ -73,7 +73,7 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     for (unsigned long int i = 0; i < marker_ids.size(); i++)
     {
         operator_intent_msgs::marker marker;
-        marker.markerId = marker_ids[i];
+        marker.marker_id = marker_ids[i];
         for (unsigned long int j = 0; j < 4; j++)
         {
             operator_intent_msgs::point_2dc point_2dc;

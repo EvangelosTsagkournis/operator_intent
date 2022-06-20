@@ -20,8 +20,8 @@
 #include <operator_intent_msgs/point_2dc.h>
 #include <operator_intent_msgs/marker.h>
 #include <operator_intent_msgs/marker_collection.h>
-#include <operator_intent_msgs/pixel_coordinates_with_distance.h>
-#include <operator_intent_msgs/pixel_coordinates_with_distance_collection.h>
+#include <operator_intent_msgs/marker_coordinates_with_distance.h>
+#include <operator_intent_msgs/marker_coordinates_with_distance_collection.h>
 
 // Aruco relevant libraries
 #include <opencv2/aruco.hpp>
@@ -51,7 +51,7 @@ private:
     image_transport::ImageTransport it_;
     image_transport::SubscriberFilter rgb_image_sub_;
     image_transport::SubscriberFilter depth_image_sub_;
-    ros::Publisher pixel_coordinates_with_distance_collection_pub_;
+    ros::Publisher marker_coordinates_with_distance_collection_pub_;
 
     typedef union U_FloatParse
     {
@@ -88,7 +88,7 @@ DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
       rgb_image_sub_(it_, RGB_TOPIC, 1),
       depth_image_sub_(it_, DEPTH_TOPIC, 1)
 {
-    pixel_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::pixel_coordinates_with_distance_collection>("/aruco/pixel_coordinates_with_distance_collection", 1);
+    marker_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/marker_coordinates_with_distance_collection", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), rgb_image_sub_, depth_image_sub_);
     sync.registerCallback(boost::bind(&DetectAruco::callBack, this, _1, _2));
@@ -195,11 +195,11 @@ void DetectAruco::callBack(const sensor_msgs::ImageConstPtr &rgb_image, const se
     // Checking if the marker_corners array is empty, if it is, we skip it (keep in mind the
     // dimensions of the marker_corners array is Nx4, where N is the number of tags detected)
 
-    operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
+    operator_intent_msgs::marker_coordinates_with_distance_collection marker_coordinates_with_distance_collection;
     // Looping through all of the detected markers using their ID's
     for (unsigned long int i = 0; i < marker_ids.size(); i++)
     {
-        operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
+        operator_intent_msgs::marker_coordinates_with_distance marker_coordinates_with_distance;
         cv::Point2i marker_points[4];
         cv::Point2i intersection_point;
         for (unsigned long int j = 0; j < 4; j++)
@@ -208,17 +208,17 @@ void DetectAruco::callBack(const sensor_msgs::ImageConstPtr &rgb_image, const se
         }
         if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point))
         {
-            pixel_coordinates_with_distance.distance = readDepthData(intersection_point, depth_image);
-            pixel_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
-            pixel_coordinates_with_distance.pixel_x = intersection_point.x;
-            pixel_coordinates_with_distance.pixel_y = intersection_point.y;
-            pixel_coordinates_with_distance_collection.pixels.push_back(pixel_coordinates_with_distance);
+            marker_coordinates_with_distance.distance = readDepthData(intersection_point, depth_image);
+            marker_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
+            marker_coordinates_with_distance.marker_pixel_x = intersection_point.x;
+            marker_coordinates_with_distance.marker_pixel_y = intersection_point.y;
+            marker_coordinates_with_distance_collection.markers.push_back(marker_coordinates_with_distance);
         }
     }
-    pixel_coordinates_with_distance_collection.camera_height = rgb_image->height;
-    pixel_coordinates_with_distance_collection.camera_width = rgb_image->width;
-    pixel_coordinates_with_distance_collection.header.stamp = ros::Time::now();
-    pixel_coordinates_with_distance_collection_pub_.publish(pixel_coordinates_with_distance_collection);
+    marker_coordinates_with_distance_collection.camera_height = rgb_image->height;
+    marker_coordinates_with_distance_collection.camera_width = rgb_image->width;
+    marker_coordinates_with_distance_collection.header.stamp = ros::Time::now();
+    marker_coordinates_with_distance_collection_pub_.publish(marker_coordinates_with_distance_collection);
 
     // Update GUI Window
     cv::imshow(OPENCV_WINDOW, cv_ptr_rgb->image);

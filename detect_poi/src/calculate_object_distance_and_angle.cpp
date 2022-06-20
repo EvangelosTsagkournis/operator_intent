@@ -14,8 +14,8 @@
 #include <operator_intent_msgs/point_2dc.h>
 #include <operator_intent_msgs/marker.h>
 #include <operator_intent_msgs/marker_collection.h>
-#include <operator_intent_msgs/pixel_coordinates_with_distance.h>
-#include <operator_intent_msgs/pixel_coordinates_with_distance_collection.h>
+#include <operator_intent_msgs/marker_coordinates_with_distance.h>
+#include <operator_intent_msgs/marker_coordinates_with_distance_collection.h>
 
 #include <cmath>
 #include <iostream>
@@ -43,7 +43,7 @@ private:
   image_transport::Publisher image_pub_;
   image_transport::SubscriberFilter depth_image_sub_;
   message_filters::Subscriber<operator_intent_msgs::marker_collection> marker_loc_sub_;
-  ros::Publisher pixel_coordinates_with_distance_collection_pub_;
+  ros::Publisher marker_coordinates_with_distance_collection_pub_;
 
   typedef union U_FloatParse
   {
@@ -71,7 +71,7 @@ CalculateObjectDistanceAndAngle::CalculateObjectDistanceAndAngle(ros::NodeHandle
 {
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
-  pixel_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::pixel_coordinates_with_distance_collection>("/aruco/pixel_coordinates_with_distance_collection", 1);
+  marker_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/marker_coordinates_with_distance_collection", 1);
   // depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
   typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_collection, sensor_msgs::Image> MySyncPolicy;
@@ -169,11 +169,11 @@ void CalculateObjectDistanceAndAngle::callBack(
     return;
   }
 
-  operator_intent_msgs::pixel_coordinates_with_distance_collection pixel_coordinates_with_distance_collection;
+  operator_intent_msgs::marker_coordinates_with_distance_collection marker_coordinates_with_distance_collection;
   // For each marker [0...n]:
   for (unsigned long int i = 0; i < marker_collection->markers.size(); i++)
   {
-    operator_intent_msgs::pixel_coordinates_with_distance pixel_coordinates_with_distance;
+    operator_intent_msgs::marker_coordinates_with_distance marker_coordinates_with_distance;
     cv::Point2i marker_points[4];
     cv::Point2i intersection_point;
     for (int j = 0; j < (sizeof(marker_points) / sizeof(marker_points[0])); j++)
@@ -182,32 +182,26 @@ void CalculateObjectDistanceAndAngle::callBack(
           marker_collection->markers[i].corner_points[j].x,
           marker_collection->markers[i].corner_points[j].y);
     }
+    // If the four corners of the marker intersect:
     if (intersection(marker_points[0], marker_points[2], marker_points[1], marker_points[3], intersection_point))
     {
-      pixel_coordinates_with_distance.distance = readDepthData(intersection_point, image);
-      pixel_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
-      /*
-      std::cout
-        << "The intersection point for marker id#" << marker_collection->markers[i].markerId
-        << " has coordinates: x = " << intersection_point.x << ", y = "
-        << intersection_point.y << std::endl;
-      std::cout
-        << "The depth for the marker #"
-        << i <<  " and id: " << marker_collection->markers[i].markerId << " is: "
-        << (int)pixel_coordinates_with_distance.distance
-        << " mm" <<  " and the angle from the camera POV is: "
-        << pixel_coordinates_with_distance.angle_radians << std::endl;
-      */
-      pixel_coordinates_with_distance.pixel_x = intersection_point.x;
-      pixel_coordinates_with_distance.pixel_y = intersection_point.y;
-      pixel_coordinates_with_distance_collection.pixels.push_back(pixel_coordinates_with_distance);
+      // Assign the marker's ID
+      marker_coordinates_with_distance.marker_id = marker_collection->markers[i].marker_id;
+      // Write the depth data
+      marker_coordinates_with_distance.distance = readDepthData(intersection_point, image);
+      // Write the angle in radians
+      marker_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
+      // Assign the center of the marker
+      marker_coordinates_with_distance.marker_pixel_x = intersection_point.x;
+      marker_coordinates_with_distance.marker_pixel_y = intersection_point.y;
+      marker_coordinates_with_distance_collection.markers.push_back(marker_coordinates_with_distance);
     }
   }
-  pixel_coordinates_with_distance_collection.header.stamp = ros::Time::now();
-  pixel_coordinates_with_distance_collection.camera_height = image->height;
-  pixel_coordinates_with_distance_collection.camera_width = image->width;
+  marker_coordinates_with_distance_collection.header.stamp = ros::Time::now();
+  marker_coordinates_with_distance_collection.camera_height = image->height;
+  marker_coordinates_with_distance_collection.camera_width = image->width;
 
-  pixel_coordinates_with_distance_collection_pub_.publish(pixel_coordinates_with_distance_collection);
+  marker_coordinates_with_distance_collection_pub_.publish(marker_coordinates_with_distance_collection);
 }
 
 int main(int argc, char **argv)

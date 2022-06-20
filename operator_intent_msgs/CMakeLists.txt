@@ -12,8 +12,8 @@ add_message_files(
   point_2dc.msg
   marker.msg
   marker_collection.msg
-  pixel_coordinates_with_distance.msg
-  pixel_coordinates_with_distance_collection.msg
+  marker_coordinates_with_distance.msg
+  marker_coordinates_with_distance_collection.msg
 )
 
 generate_messages(

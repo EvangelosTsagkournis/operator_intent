@@ -122,7 +122,7 @@ catkin_package(
     std_msgs
     message_filters
     operator_intent_msgs
-#  DEPENDS system_lib
+  #DEPENDS system_lib
 )
 
 ###########
@@ -157,6 +157,8 @@ add_executable(calculate_object_distance_angle_node src/calculate_object_distanc
 add_executable(approximate_time src/approximate_time.cpp)
 add_executable(testnode src/SubscribeAndPublish.cpp)
 add_executable(consolidated_aruco_node src/consolidated_aruco_node.cpp)
+add_executable(calibrate_camera src/calibrate_camera.cpp)
+add_executable(camera_calibration src/camera_calibration.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -172,6 +174,8 @@ add_dependencies(calculate_object_distance_angle_node ${${PROJECT_NAME}_EXPORTED
 add_dependencies(approximate_time ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(testnode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(consolidated_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(calibrate_camera ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(camera_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(generate_markers
@@ -203,6 +207,14 @@ target_link_libraries(testnode
 
 target_link_libraries(consolidated_aruco_node
     ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(calibrate_camera
+    ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(camera_calibration
     ${OpenCV_LIBRARIES}
 )
 
