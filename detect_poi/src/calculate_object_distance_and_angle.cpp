@@ -4,11 +4,15 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Quaternion.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 // Custom msgs
 #include <operator_intent_msgs/point_2dc.h>
@@ -43,6 +47,7 @@ private:
   image_transport::Publisher image_pub_;
   image_transport::SubscriberFilter depth_image_sub_;
   message_filters::Subscriber<operator_intent_msgs::marker_collection> marker_loc_sub_;
+  message_filters::Subscriber<nav_msgs::Odometry> odometry_sub_;
   ros::Publisher marker_coordinates_with_distance_collection_pub_;
 
   typedef union U_FloatParse
@@ -53,6 +58,16 @@ private:
 
   int readDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
   double findAngleInRadians(cv::Point2i);
+  double findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion);
+
+  void findPositionOfMarker(
+      double &distance,
+      double &angle_radians,
+      double &robot_angle_radians,
+      double robot_position_x,
+      double robot_position_y,
+      double &marker_position_x,
+      double &marker_position_y);
 
   bool intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r);
 
@@ -63,20 +78,22 @@ public:
 
   void callBack(
       const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
-      const sensor_msgs::ImageConstPtr &image);
+      const sensor_msgs::ImageConstPtr &image,
+      const nav_msgs::OdometryConstPtr &odometry);
 };
 
-CalculateObjectDistanceAndAngle::CalculateObjectDistanceAndAngle(ros::NodeHandle nh, ros::NodeHandle pnh) : it_(nh_),
-                                                                                                            depth_image_sub_(it_, "camera/depth/image_raw", 1)
+CalculateObjectDistanceAndAngle::CalculateObjectDistanceAndAngle(ros::NodeHandle nh, ros::NodeHandle pnh)
+    : it_(nh_), depth_image_sub_(it_, "camera/depth/image_raw", 1)
 {
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
+  // odometry_sub_.subscribe(nh_, "husky_velocity_controller/odom", 1);
+  odometry_sub_.subscribe(nh_, "husky_base_ground_truth", 1);
   marker_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/marker_coordinates_with_distance_collection", 1);
-  // depth_image_sub_.subscribe(nh_, "/camera/depth/image_raw", 1);
 
-  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_collection, sensor_msgs::Image> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_);
-  sync.registerCallback(boost::bind(&CalculateObjectDistanceAndAngle::callBack, this, _1, _2));
+  typedef message_filters::sync_policies::ApproximateTime<operator_intent_msgs::marker_collection, sensor_msgs::Image, nav_msgs::Odometry> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), marker_loc_sub_, depth_image_sub_, odometry_sub_);
+  sync.registerCallback(boost::bind(&CalculateObjectDistanceAndAngle::callBack, this, _1, _2, _3));
   ros::spin();
 }
 
@@ -137,6 +154,33 @@ double CalculateObjectDistanceAndAngle::findAngleInRadians(cv::Point2i intersect
   return angleInDegrees * M_PI / 180;
 }
 
+void CalculateObjectDistanceAndAngle::findPositionOfMarker(
+    double &distance,
+    double &angle_radians,
+    double &robot_angle_radians,
+    double robot_position_x,
+    double robot_position_y,
+    double &marker_position_x,
+    double &marker_position_y)
+{
+  double consolidated_angle_radians = robot_angle_radians + angle_radians;
+  marker_position_x = robot_position_x + distance / 1000 * cos(consolidated_angle_radians);
+  marker_position_y = robot_position_y + distance / 1000 * sin(consolidated_angle_radians);
+}
+
+double CalculateObjectDistanceAndAngle::findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion)
+{
+  tf2::Quaternion q(
+      quaternion.x,
+      quaternion.y,
+      quaternion.z,
+      quaternion.w);
+  tf2::Matrix3x3 m(q);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+  return yaw;
+}
+
 // Finds the intersection of two lines, or returns false.
 // The lines are defined by (o1, p1) and (o2, p2).
 bool CalculateObjectDistanceAndAngle::intersection(cv::Point2i o1, cv::Point2i p1, cv::Point2i o2, cv::Point2i p2, cv::Point2i &r)
@@ -156,7 +200,8 @@ bool CalculateObjectDistanceAndAngle::intersection(cv::Point2i o1, cv::Point2i p
 
 void CalculateObjectDistanceAndAngle::callBack(
     const operator_intent_msgs::marker_collectionConstPtr &marker_collection,
-    const sensor_msgs::ImageConstPtr &image)
+    const sensor_msgs::ImageConstPtr &image,
+    const nav_msgs::OdometryConstPtr &odometry)
 {
   cv_bridge::CvImagePtr cv_ptr;
   try
@@ -168,6 +213,10 @@ void CalculateObjectDistanceAndAngle::callBack(
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+
+  // Set robot angle
+  geometry_msgs::Quaternion temp_quaternion = odometry->pose.pose.orientation;
+  double robot_angle = findAngleInRadiansFromQuaternion(temp_quaternion);
 
   operator_intent_msgs::marker_coordinates_with_distance_collection marker_coordinates_with_distance_collection;
   // For each marker [0...n]:
@@ -191,9 +240,23 @@ void CalculateObjectDistanceAndAngle::callBack(
       marker_coordinates_with_distance.distance = readDepthData(intersection_point, image);
       // Write the angle in radians
       marker_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
+
+      double marker_x, marker_y;
+      // Find marker position in world
+      findPositionOfMarker(
+          marker_coordinates_with_distance.distance,
+          marker_coordinates_with_distance.angle_radians,
+          robot_angle,
+          odometry->pose.pose.position.x,
+          odometry->pose.pose.position.y,
+          marker_x,
+          marker_y);
+
       // Assign the center of the marker
       marker_coordinates_with_distance.marker_pixel_x = intersection_point.x;
       marker_coordinates_with_distance.marker_pixel_y = intersection_point.y;
+      marker_coordinates_with_distance.marker_world_x = marker_x;
+      marker_coordinates_with_distance.marker_world_y = marker_y;
       marker_coordinates_with_distance_collection.markers.push_back(marker_coordinates_with_distance);
     }
   }
