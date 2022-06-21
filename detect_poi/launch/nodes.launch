@@ -7,8 +7,13 @@
     <param name="/use_sim_time" value="true"/>
   </node>
 
-  <!-- calculate_auruco_distance_node-->
+  <!-- calculate_aruco_distance_node-->
   <node pkg="detect_poi" type="calculate_object_distance_angle_node" name="calculate_object_distance_angle_node" output="screen">
     <param name="/use_sim_time" value="true"/>
   </node>
+
+  <node pkg="detect_poi" type="persistent_markers_node" name="persistent_markers_node" output="screen">
+    <param name="/use_sim_time" value="true"/>
+  </node>
+
 </launch>
