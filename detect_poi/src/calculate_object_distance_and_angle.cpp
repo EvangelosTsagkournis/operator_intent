@@ -60,7 +60,7 @@ private:
   double findAngleInRadians(cv::Point2i);
   double findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion);
 
-  void findPositionOfMarker(
+  bool findPositionOfMarker(
       double &distance,
       double &angle_radians,
       double &robot_angle_radians,
@@ -154,7 +154,7 @@ double CalculateObjectDistanceAndAngle::findAngleInRadians(cv::Point2i intersect
   return angleInDegrees * M_PI / 180;
 }
 
-void CalculateObjectDistanceAndAngle::findPositionOfMarker(
+bool CalculateObjectDistanceAndAngle::findPositionOfMarker(
     double &distance,
     double &angle_radians,
     double &robot_angle_radians,
@@ -163,9 +163,14 @@ void CalculateObjectDistanceAndAngle::findPositionOfMarker(
     double &marker_position_x,
     double &marker_position_y)
 {
-  double consolidated_angle_radians = robot_angle_radians + angle_radians;
-  marker_position_x = robot_position_x + distance / 1000 * cos(consolidated_angle_radians);
-  marker_position_y = robot_position_y + distance / 1000 * sin(consolidated_angle_radians);
+  if (distance != -1.0)
+  {
+    double consolidated_angle_radians = robot_angle_radians + angle_radians;
+    marker_position_x = robot_position_x + distance / 1000 * cos(consolidated_angle_radians);
+    marker_position_y = robot_position_y + distance / 1000 * sin(consolidated_angle_radians);
+    return true;
+  }
+  return false;
 }
 
 double CalculateObjectDistanceAndAngle::findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion)
@@ -243,20 +248,22 @@ void CalculateObjectDistanceAndAngle::callBack(
 
       double marker_x, marker_y;
       // Find marker position in world
-      findPositionOfMarker(
-          marker_coordinates_with_distance.distance,
-          marker_coordinates_with_distance.angle_radians,
-          robot_angle,
-          odometry->pose.pose.position.x,
-          odometry->pose.pose.position.y,
-          marker_x,
-          marker_y);
-
+      if (findPositionOfMarker(
+              marker_coordinates_with_distance.distance,
+              marker_coordinates_with_distance.angle_radians,
+              robot_angle,
+              odometry->pose.pose.position.x,
+              odometry->pose.pose.position.y,
+              marker_x,
+              marker_y))
+      {
+        marker_coordinates_with_distance.marker_world_x = marker_x;
+        marker_coordinates_with_distance.marker_world_y = marker_y;
+      }
       // Assign the center of the marker
       marker_coordinates_with_distance.marker_pixel_x = intersection_point.x;
       marker_coordinates_with_distance.marker_pixel_y = intersection_point.y;
-      marker_coordinates_with_distance.marker_world_x = marker_x;
-      marker_coordinates_with_distance.marker_world_y = marker_y;
+
       marker_coordinates_with_distance_collection.markers.push_back(marker_coordinates_with_distance);
     }
   }
