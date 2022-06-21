@@ -28,7 +28,6 @@ PersistentMarkers::PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh) : 
 {
     marker_collection_sub_ = nh_.subscribe<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/marker_coordinates_with_distance_collection", 1, &PersistentMarkers::callBack, this);
     persistent_marker_collection_pub_ = nh.advertise<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/persistent_marker_coordinates_with_distance_collection", 1);
-    std::cout << "Sub & Pub done!" << std::endl;
 }
 
 void PersistentMarkers::callBack(const operator_intent_msgs::marker_coordinates_with_distance_collectionConstPtr &msg)
