@@ -33,53 +33,47 @@ PersistentMarkers::PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh) : 
 
 void PersistentMarkers::callBack(const operator_intent_msgs::marker_coordinates_with_distance_collectionConstPtr &msg)
 {
-    std::cout << "Got in callback!" << std::endl;
     persistent_marker_collection.header = msg->header;
-    std::cout << "Got in callback! 2" << std::endl;
     persistent_marker_collection.camera_height = msg->camera_height;
     persistent_marker_collection.camera_width = msg->camera_width;
 
-    std::cout << "Size of msg markers: " << sizeof(msg->markers) / sizeof(msg->markers[0]) << std::endl;
 
-    // Condition below won't let it enter, to be revised
-    // if (sizeof(msg->markers) / sizeof(msg->markers[0]) != 0)
-    // {
-        std::cout << "Got in callback! 3" << std::endl;
+    // If the msg isn't empty aka no markers detected
+    if (msg->markers.size() != 0)
+    {
+        // For each marker in msg
         for (int i = 0; i < msg->markers.size(); i++)
         {
-            std::cout << "Got in callback! 4" << std::endl;
+            // Bool value to check if a match has been found
             bool found = false;
+            // For each marker in persistent_marker_collection
             for (int j = 0; j < persistent_marker_collection.markers.size(); j++)
             {
-                std::cout << "Got in callback! 5" << std::endl;
-
+                // If the marker_id in the msg matches the one in persistent_marker_collection
                 if (msg->markers[i].marker_id == persistent_marker_collection.markers[j].marker_id)
                 {
-                    std::cout << "Got in callback! 6" << std::endl;
-                    // Size of persistent_marker_collection.markers keeps growing, special attention to replace and NOT add
-                    std::cout << "Size of persistent markers:" << persistent_marker_collection.markers.size() << std::endl;
-                    persistent_marker_collection.markers[j] = msg->markers[i];
+                    // And if the marker isn't out of bounds for the depth sensor
+                    if (!(msg->markers[i].marker_world_x == 0.0 && msg->markers[i].marker_world_y == 0.0 && msg->markers[i].distance == -1.0))
+                    {
+                        // Update the marker in the persistent_marker_collection with the one in the msg
+                        persistent_marker_collection.markers[j] = msg->markers[i];
+                    }
+                    // Set the found to true and break
                     found = true;
                     break;
                 }
             }
+            // If a match has not been found:
             if (!found)
             {
-                std::cout << "Got in callback! 7" << std::endl;
-                operator_intent_msgs::marker_coordinates_with_distance temp_marker;
-                temp_marker.marker_id = msg->markers[i].marker_id;
-                temp_marker.angle_radians = msg->markers[i].angle_radians;
-                temp_marker.distance = msg->markers[i].distance;
-                temp_marker.marker_pixel_x = msg->markers[i].marker_pixel_x;
-                temp_marker.marker_pixel_y = msg->markers[i].marker_pixel_y;
-                temp_marker.marker_world_x = msg->markers[i].marker_world_x;
-                temp_marker.marker_world_y = msg->markers[i].marker_world_y;
+                // Add a new marker to the persistent_marker_collection
+                operator_intent_msgs::marker_coordinates_with_distance temp_marker = msg->markers[i];
                 persistent_marker_collection.markers.push_back(temp_marker);
             }
         }
-    // }
+    }
+    // Publish the current state of the persistent_marker_collection
     persistent_marker_collection_pub_.publish(persistent_marker_collection);
-    std::cout << "Published!" << std::endl;
 }
 
 int main(int argc, char **argv)
