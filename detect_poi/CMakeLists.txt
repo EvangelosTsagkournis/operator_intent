@@ -155,7 +155,6 @@ add_executable(generate_markers src/generate_markers.cpp)
 add_executable(detect_aruco_node src/detect_aruco.cpp)
 add_executable(calculate_object_distance_angle_node src/calculate_object_distance_and_angle.cpp)
 add_executable(persistent_markers_node src/persistent_markers.cpp)
-# add_executable(consolidated_aruco_node src/consolidated_aruco_node.cpp)
 add_executable(calibrate_camera src/calibrate_camera.cpp)
 add_executable(camera_calibration src/camera_calibration.cpp)
 
@@ -171,7 +170,6 @@ add_executable(camera_calibration src/camera_calibration.cpp)
 add_dependencies(detect_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(calculate_object_distance_angle_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(persistent_markers_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# add_dependencies(consolidated_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(calibrate_camera ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(camera_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -180,11 +178,6 @@ add_dependencies(camera_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin
 target_link_libraries(generate_markers
     ${OpenCV_LIBRARIES}
 )
-
-# target_link_libraries(depth_node
-#     ${catkin_LIBRARIES}
-#     ${OpenCV_LIBRARIES}
-# )
 
 target_link_libraries(detect_aruco_node
     ${catkin_LIBRARIES}
@@ -199,11 +192,6 @@ target_link_libraries(calculate_object_distance_angle_node
 target_link_libraries(persistent_markers_node
     ${catkin_LIBRARIES}
 )
-
-# target_link_libraries(consolidated_aruco_node
-#     ${catkin_LIBRARIES}
-#     ${OpenCV_LIBRARIES}
-# )
 
 target_link_libraries(calibrate_camera
     ${OpenCV_LIBRARIES}
