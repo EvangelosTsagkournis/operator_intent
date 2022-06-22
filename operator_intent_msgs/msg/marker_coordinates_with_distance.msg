@@ -3,5 +3,5 @@ int32 marker_pixel_x
 int32 marker_pixel_y
 float64 marker_world_x
 float64 marker_world_y
-float64 distance
+float64 distance_mm
 float64 angle_radians
