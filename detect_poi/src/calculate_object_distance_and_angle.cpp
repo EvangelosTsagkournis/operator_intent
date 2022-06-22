@@ -42,6 +42,7 @@ class CalculateObjectDistanceAndAngle
 {
 private:
   ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
@@ -57,7 +58,7 @@ private:
   } U_FloatConvert;
 
   int readDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
-  double findAngleInRadians(cv::Point2i);
+  double findAngleInRadiansFromCameraPointOfReference(cv::Point2i);
   double findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion);
 
   bool findPositionOfMarker(
@@ -83,7 +84,7 @@ public:
 };
 
 CalculateObjectDistanceAndAngle::CalculateObjectDistanceAndAngle(ros::NodeHandle nh, ros::NodeHandle pnh)
-    : it_(nh_), depth_image_sub_(it_, "camera/depth/image_raw", 1)
+    : nh_(nh), pnh_(pnh_), it_(nh_), depth_image_sub_(it_, "camera/depth/image_raw", 1)
 {
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
@@ -145,17 +146,17 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
   return -1; // If depth data invalid
 }
 
-double CalculateObjectDistanceAndAngle::findAngleInRadians(cv::Point2i intersection_point)
+double CalculateObjectDistanceAndAngle::findAngleInRadiansFromCameraPointOfReference(cv::Point2i intersection_point)
 {
   cv::Point2i middle_pixel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
   double degrees_per_pixel = (double)KINECT_CAMERA_HORIZONTAL_FOV_DEG / (double)SCREEN_WIDTH;
   int difference_in_x = middle_pixel.x - intersection_point.x;
-  double angleInDegrees = degrees_per_pixel * (middle_pixel.x - intersection_point.x);
-  return angleInDegrees * M_PI / 180;
+  double angleInRadians = (degrees_per_pixel * (middle_pixel.x - intersection_point.x)) * M_PI / 180;
+  return angleInRadians;
 }
 
 bool CalculateObjectDistanceAndAngle::findPositionOfMarker(
-    double &distance,
+    double &distance_mm,
     double &angle_radians,
     double &robot_angle_radians,
     double robot_position_x,
@@ -163,11 +164,11 @@ bool CalculateObjectDistanceAndAngle::findPositionOfMarker(
     double &marker_position_x,
     double &marker_position_y)
 {
-  if (distance != -1.0)
+  if (distance_mm != -1.0)
   {
     double consolidated_angle_radians = robot_angle_radians + angle_radians;
-    marker_position_x = robot_position_x + distance / 1000 * cos(consolidated_angle_radians);
-    marker_position_y = robot_position_y + distance / 1000 * sin(consolidated_angle_radians);
+    marker_position_x = robot_position_x + distance_mm / 1000 * cos(consolidated_angle_radians);
+    marker_position_y = robot_position_y + distance_mm / 1000 * sin(consolidated_angle_radians);
     return true;
   }
   return false;
@@ -242,14 +243,14 @@ void CalculateObjectDistanceAndAngle::callBack(
       // Assign the marker's ID
       marker_coordinates_with_distance.marker_id = marker_collection->markers[i].marker_id;
       // Write the depth data
-      marker_coordinates_with_distance.distance = readDepthData(intersection_point, image);
+      marker_coordinates_with_distance.distance_mm = readDepthData(intersection_point, image);
       // Write the angle in radians
-      marker_coordinates_with_distance.angle_radians = findAngleInRadians(intersection_point);
+      marker_coordinates_with_distance.angle_radians = findAngleInRadiansFromCameraPointOfReference(intersection_point);
 
       double marker_x, marker_y;
       // Find marker position in world
       if (findPositionOfMarker(
-              marker_coordinates_with_distance.distance,
+              marker_coordinates_with_distance.distance_mm,
               marker_coordinates_with_distance.angle_radians,
               robot_angle,
               odometry->pose.pose.position.x,
