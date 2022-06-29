@@ -141,7 +141,9 @@ void PersistentMarkers::callBack(
     }
     updatePersistentMarkerCollectionFromRobotPose(odometry_msg);
     // Publish the current state of the persistent_marker_collection
-    persistent_marker_collection_pub_.publish(persistent_marker_collection);
+    if (persistent_marker_collection.markers.size() != 0) {
+        persistent_marker_collection_pub_.publish(persistent_marker_collection);
+    }
 }
 
 int main(int argc, char **argv)
