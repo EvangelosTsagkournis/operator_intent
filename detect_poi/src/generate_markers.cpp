@@ -1,5 +1,5 @@
 #include "opencv2/core.hpp"
-#include"opencv2/imgcodecs.hpp"
+#include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/aruco.hpp"
@@ -9,7 +9,6 @@
 #include <iostream>
 #include <fstream>
 
-
 void createArucoMarkers()
 {
   cv::Mat outputMarker;
@@ -17,7 +16,7 @@ void createArucoMarkers()
   cv::Ptr<cv::aruco::Dictionary> markerDictionary =
       cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME::DICT_4X4_50);
 
-  for (int i=0; i<50; i++)
+  for (int i = 0; i < 50; i++)
   {
     cv::aruco::drawMarker(markerDictionary, i, 500, outputMarker, 1);
     std::ostringstream convert;

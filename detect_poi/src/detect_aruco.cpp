@@ -114,7 +114,6 @@ DetectAruco::~DetectAruco()
     cv::destroyWindow(OPENCV_WINDOW);
 }
 
-
 int main(int argc, char **argv)
 {
     NodeMain<DetectAruco>(argc, argv, "DetectArucoNode");
