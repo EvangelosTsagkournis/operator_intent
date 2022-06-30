@@ -7,6 +7,7 @@
 #include <operator_intent_msgs/marker_coordinates_with_distance_collection.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Vector3.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -16,7 +17,8 @@
 // Node template
 #include "node_template.cpp"
 
-struct Point{
+struct Point
+{
     double x;
     double y;
 };
@@ -36,6 +38,8 @@ private:
                   const nav_msgs::OdometryConstPtr &odometry_msg);
     double calculateDistanceOfTwoPoints(Point &p1, Point &p2);
     void updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg);
+    double calculateTimeStepNanoSeconds(ros::Time now_timestamp, ros::Time previous_timestamp);
+    double calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity);
 
 public:
     PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh);
@@ -52,55 +56,99 @@ PersistentMarkers::PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh) : 
     ros::spin();
 }
 
-double PersistentMarkers::calculateDistanceOfTwoPoints(Point &p1, Point &p2) {
+double PersistentMarkers::calculateDistanceOfTwoPoints(Point &p1, Point &p2)
+{
     return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
+}
+
+double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity)
+{
+    // Step 1: Calculate the direction vector for the marker
+    // the Point struct was used for the vector for simplicity
+    Point direction_vector;
+    direction_vector.x = marker_position.x - robot_position.x;
+    direction_vector.y = marker_position.y - robot_position.y;
+
+    // Step 2: Normalize the vector
+    double vector_magnitude = sqrt(pow(direction_vector.x, 2) + pow(direction_vector.y, 2));
+    direction_vector.x = direction_vector.x / vector_magnitude;
+    direction_vector.y = direction_vector.y / vector_magnitude;
+
+    // Step 3: Find the dot product between the direction vector and the linear velocity vector
+    double approaching_speed_meters_per_sec = direction_vector.x * robot_linear_velocity.x + direction_vector.y * robot_linear_velocity.y;
+
+    return approaching_speed_meters_per_sec;
 }
 
 void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg)
 {
+    // Set robot's position in the world
     Point robot_position = {odometry_msg->pose.pose.position.x, odometry_msg->pose.pose.position.y};
     for (int i = 0; i < persistent_marker_collection.markers.size(); i++)
     {
-        // Update distance
+        // Set marker's position in the world
         Point marker_position = {persistent_marker_collection.markers[i].marker_world_x, persistent_marker_collection.markers[i].marker_world_y};
+
+        // Update approach_speed
+        persistent_marker_collection.markers[i].approaching_speed_meters_per_sec = calculateApproachingSpeed(
+            robot_position, marker_position,
+            odometry_msg->twist.twist.linear);
+
+        // Update distance
         persistent_marker_collection.markers[i].distance_mm = calculateDistanceOfTwoPoints(robot_position, marker_position) * 1000;
 
         // Update angle
         double marker_world_angle_from_robot_base = atan2(marker_position.y - robot_position.y, marker_position.x - robot_position.x);
-        if ((marker_world_angle_from_robot_base) < 0) {
-            marker_world_angle_from_robot_base = 2*M_PI - marker_world_angle_from_robot_base;
+        if ((marker_world_angle_from_robot_base) < 0)
+        {
+            marker_world_angle_from_robot_base = 2 * M_PI - marker_world_angle_from_robot_base;
         }
 
         tf2::Quaternion q(
-            odometry_msg->pose.pose.orientation.x, 
-            odometry_msg->pose.pose.orientation.y, 
-            odometry_msg->pose.pose.orientation.z, 
+            odometry_msg->pose.pose.orientation.x,
+            odometry_msg->pose.pose.orientation.y,
+            odometry_msg->pose.pose.orientation.z,
             odometry_msg->pose.pose.orientation.w);
+
         tf2::Matrix3x3 m(q);
         double roll, pitch, yaw;
         m.getRPY(roll, pitch, yaw);
         double robot_world_angle = yaw;
 
-        if (robot_world_angle < 0) {
-            robot_world_angle = 2*M_PI + robot_world_angle;
+        if (robot_world_angle < 0)
+        {
+            robot_world_angle = 2 * M_PI + robot_world_angle;
         }
 
         double marker_from_robot_angle = marker_world_angle_from_robot_base - robot_world_angle;
-        if (marker_from_robot_angle > M_PI) {
-            marker_from_robot_angle = 2*M_PI - marker_from_robot_angle;
+        if (marker_from_robot_angle > M_PI)
+        {
+            marker_from_robot_angle = 2 * M_PI - marker_from_robot_angle;
         }
-        else if (marker_from_robot_angle < -M_PI) {
-            marker_from_robot_angle = 2*M_PI + marker_from_robot_angle;
+        else if (marker_from_robot_angle < -M_PI)
+        {
+            marker_from_robot_angle = 2 * M_PI + marker_from_robot_angle;
         }
         persistent_marker_collection.markers[i].angle_radians = marker_from_robot_angle;
     }
     return;
 }
 
+double PersistentMarkers::calculateTimeStepNanoSeconds(ros::Time now_timestamp, ros::Time previous_timestamp)
+{
+    double now_time_nanoseconds = now_timestamp.sec * 1000 + now_timestamp.nsec;
+    double previous_time_nanoseconds = previous_timestamp.sec * 1000 + now_timestamp.nsec;
+    return (now_time_nanoseconds - previous_time_nanoseconds);
+}
+
 void PersistentMarkers::callBack(
     const operator_intent_msgs::marker_coordinates_with_distance_collectionConstPtr &marker_coordinates_with_distance_collection_msg,
     const nav_msgs::OdometryConstPtr &odometry_msg)
 {
+    double timestep = calculateTimeStepNanoSeconds(
+        marker_coordinates_with_distance_collection_msg->header.stamp,
+        persistent_marker_collection.header.stamp);
+
     persistent_marker_collection.header = marker_coordinates_with_distance_collection_msg->header;
     persistent_marker_collection.camera_height = marker_coordinates_with_distance_collection_msg->camera_height;
     persistent_marker_collection.camera_width = marker_coordinates_with_distance_collection_msg->camera_width;
@@ -141,7 +189,8 @@ void PersistentMarkers::callBack(
     }
     updatePersistentMarkerCollectionFromRobotPose(odometry_msg);
     // Publish the current state of the persistent_marker_collection
-    if (persistent_marker_collection.markers.size() != 0) {
+    if (persistent_marker_collection.markers.size() != 0)
+    {
         persistent_marker_collection_pub_.publish(persistent_marker_collection);
     }
 }
