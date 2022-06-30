@@ -5,3 +5,4 @@ float64 marker_world_x
 float64 marker_world_y
 float64 distance_mm
 float64 angle_radians
+float64 approaching_speed_meters_per_sec
