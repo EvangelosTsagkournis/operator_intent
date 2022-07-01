@@ -22,7 +22,7 @@ class GoalInference:
         # Initialize ros stuff
         rospy.init_node('intent_inference_node', anonymous=True)
         rospy.Subscriber("/aruco/persistent_marker_coordinates_with_distance_collection",
-                         marker_coordinates_with_distance_collection, self.callback)
+                         marker_coordinates_with_distance_collection, self.callback, queue_size=1)
         rospy.spin()
 
     def callback(self, persistent_marker_collection):
@@ -53,8 +53,9 @@ class GoalInference:
         
         # Feeding the input data to the model and printing the output in the console
         # print(prediction_df)
-        print(self.model.predict(prediction_df))
-        print(self.model.predict_proba(prediction_df))
+
+        print(self.model.predict(prediction_df), "\n", self.model.predict_proba(prediction_df), "\n")
+        #print(self.model.predict_proba(prediction_df))
 
     def model_prediction(self):
         return self.model.predict()
