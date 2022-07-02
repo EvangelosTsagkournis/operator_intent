@@ -52,6 +52,9 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>message_generation</build_depend>
   <build_export_depend>std_msgs</build_export_depend>
+  <run_depend>python3-numpy</run_depend>
+  <run_depend>python3-pandas</run_depend>
+  <run_depend>python3-sklearn</run_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>std_msgs</exec_depend>
 
