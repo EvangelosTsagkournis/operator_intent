@@ -58,7 +58,7 @@ PersistentMarkers::PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh) : 
 
 double PersistentMarkers::calculateDistanceOfTwoPoints(Point &p1, Point &p2)
 {
-    return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
+    return sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 }
 
 double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity)
@@ -70,7 +70,7 @@ double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point 
     direction_vector.y = marker_position.y - robot_position.y;
 
     // Step 2: Normalize the vector
-    double vector_magnitude = sqrt(pow(direction_vector.x, 2) + pow(direction_vector.y, 2));
+    double vector_magnitude = sqrt(direction_vector.x * direction_vector.x + direction_vector.y * direction_vector.y);
     direction_vector.x = direction_vector.x / vector_magnitude;
     direction_vector.y = direction_vector.y / vector_magnitude;
 
