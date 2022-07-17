@@ -11,8 +11,8 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 
 
 class GoalInference:
-    def __init__(self):
-        self.markers_set = {0, 8, 15}
+    def __init__(self, markers_set):
+        self.markers_set = markers_set
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
         # Loading the model saved in "${detect_poi}/ml_models/"
@@ -63,6 +63,6 @@ class GoalInference:
 
 if __name__ == "__main__":
     try:
-        gi = GoalInference()
+        gi = GoalInference({0, 8, 15})
     except rospy.ROSInterruptException:
         pass
