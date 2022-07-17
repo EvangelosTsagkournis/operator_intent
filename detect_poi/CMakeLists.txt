@@ -155,8 +155,6 @@ add_executable(generate_markers src/generate_markers.cpp)
 add_executable(detect_aruco_node src/detect_aruco.cpp)
 add_executable(calculate_object_distance_angle_node src/calculate_object_distance_and_angle.cpp)
 add_executable(persistent_markers_node src/persistent_markers.cpp)
-add_executable(calibrate_camera src/calibrate_camera.cpp)
-add_executable(camera_calibration src/camera_calibration.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -170,8 +168,6 @@ add_executable(camera_calibration src/camera_calibration.cpp)
 add_dependencies(detect_aruco_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(calculate_object_distance_angle_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(persistent_markers_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(calibrate_camera ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(camera_calibration ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 ## Specify libraries to link a library or executable target against
@@ -192,15 +188,6 @@ target_link_libraries(calculate_object_distance_angle_node
 target_link_libraries(persistent_markers_node
     ${catkin_LIBRARIES}
 )
-
-target_link_libraries(calibrate_camera
-    ${OpenCV_LIBRARIES}
-)
-
-target_link_libraries(camera_calibration
-    ${OpenCV_LIBRARIES}
-)
-
 
 #############
 ## Install ##
