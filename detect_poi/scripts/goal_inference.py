@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import csv
 import rospy
 import rospkg
 import numpy as np
@@ -64,15 +63,15 @@ class GoalInference:
 
 
 if __name__ == "__main__":
-    try:
-        rospack = rospkg.RosPack()
-        with open (os.path.join(rospack.get_path(
-            "detect_poi"), "config/config.csv")) as f:
+    rospack = rospkg.RosPack()
+    with open (os.path.join(rospack.get_path(
+            "detect_poi"), "config/config.txt")) as f:
             # reader = csv.reader(f)
             # markers_set = list(reader)
             # print(markers_set)
             data = f.read()
             markers_set = data.split(',')
+    try:
         gi = GoalInference(markers_set)
     except rospy.ROSInterruptException:
         pass
