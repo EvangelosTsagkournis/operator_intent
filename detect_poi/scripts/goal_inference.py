@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import rospy
 import os
+import csv
+import rospy
 import rospkg
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 class GoalInference:
     def __init__(self, markers_set):
         self.markers_set = markers_set
+        print(self.markers_set)
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
         # Loading the model saved in "${detect_poi}/ml_models/"
@@ -33,7 +35,7 @@ class GoalInference:
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
             # If the marker_id is in the predefines set of markers we seek
-            if i.marker_id in self.markers_set:
+            if str(i.marker_id) in self.markers_set:
                 prediction_df["marker_{}_distance".format(i.marker_id)] = [i.distance_mm]
                 prediction_df["marker_{}_angle_radians".format(i.marker_id)] = [i.angle_radians]
                 prediction_df["marker_{}_approach_speed".format(i.marker_id)] = [i.approaching_speed_meters_per_sec]
@@ -63,6 +65,14 @@ class GoalInference:
 
 if __name__ == "__main__":
     try:
-        gi = GoalInference({0, 8, 15})
+        rospack = rospkg.RosPack()
+        with open (os.path.join(rospack.get_path(
+            "detect_poi"), "config/config.csv")) as f:
+            # reader = csv.reader(f)
+            # markers_set = list(reader)
+            # print(markers_set)
+            data = f.read()
+            markers_set = data.split(',')
+        gi = GoalInference(markers_set)
     except rospy.ROSInterruptException:
         pass
