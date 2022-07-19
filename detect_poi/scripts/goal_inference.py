@@ -51,12 +51,8 @@ class GoalInference:
             "marker_15_angle_radians",
             "marker_15_approach_speed"
         ]]
-        
-        # Feeding the input data to the model and printing the output in the console
-        # print(prediction_df)
 
         print(self.model.predict(prediction_df), "\n", self.model.predict_proba(prediction_df), "\n")
-        #print(self.model.predict_proba(prediction_df))
 
     def model_prediction(self):
         return self.model.predict()
@@ -66,9 +62,6 @@ if __name__ == "__main__":
     rospack = rospkg.RosPack()
     with open (os.path.join(rospack.get_path(
             "detect_poi"), "config/config.txt")) as f:
-            # reader = csv.reader(f)
-            # markers_set = list(reader)
-            # print(markers_set)
             data = f.read()
             markers_set = data.split(',')
     try:
