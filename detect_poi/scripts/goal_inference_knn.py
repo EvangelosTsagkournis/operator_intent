@@ -12,8 +12,9 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 
 class GoalInferenceKNN:
     def __init__(self, markers_set):
+        self.max_log_size = 1000
+        self.knn_number = 5
         self.state_log = pd.DataFrame()
-        self.max_log_size = 50
         self.markers_set = markers_set
         print(self.markers_set)
         rospack = rospkg.RosPack()
@@ -73,7 +74,7 @@ class GoalInferenceKNN:
 
         df_nearest_neighbors = pd.DataFrame(state_log_array[:, :-1], columns = data_columns)
 
-        print("df_nearest_neighbors: ", df_nearest_neighbors)
+        # print("df_nearest_neighbors: ", df_nearest_neighbors)
 
         return df_nearest_neighbors
 
@@ -110,25 +111,25 @@ class GoalInferenceKNN:
 
     # Check if the size of the state log is > a value. If it is, pop the top value.
     def manage_log_size(self):
-        print("Before popping shape:", self.state_log.shape)
+        # print("Before popping shape:", self.state_log.shape)
         # self.state_log.drop(self.state_log.index[0], inplace=True)
         self.state_log = self.state_log.iloc[1:, :]
         self.state_log.reset_index(drop=True, inplace=True)
-        print("Old log popped!")
-        print("After popping shape:", self.state_log.shape)
+        # print("Old log popped!")
+        # print("After popping shape:", self.state_log.shape)
 
     def callback(self, persistent_marker_collection):
         current_state_df = self.create_current_state_dataframe(
             persistent_marker_collection)
 
-        print("Current state_log size:", len(self.state_log))
+        # print("Current state_log size:", len(self.state_log))
         # If a sufficient number of states has been recorded, use them to generate the goal
         if len(self.state_log) > self.max_log_size:
             # Check if the size of the state log is > a value. If it is, pop the oldest entry.
             self.manage_log_size()
             # Calculate goal and goal_probability and add to current_state_df
-            nearest_states_df = self.return_nearest_neighbors(current_state_df, 5)
-            print("Log greater than", self.max_log_size)
+            nearest_states_df = self.return_nearest_neighbors(current_state_df, self.knn_number)
+            # print("Log greater than", self.max_log_size)
             print("nearest_states_df prediction: ", nearest_states_df['Goal'].value_counts().idxmax())
             # TODO: do the goal calculation based on nearest_states_df returned
         
@@ -136,13 +137,13 @@ class GoalInferenceKNN:
         current_goal_probability = self.model.predict_proba(
             current_state_df).max()
         current_state_df["Goal"] = current_goal
-        print(current_goal, "\n", current_goal_probability, "\n")
-        print("current_state_df:", current_state_df)
+        print("Current goal inference and probability:",current_goal, "\n", current_goal_probability, "\n")
+        # print("current_state_df:", current_state_df)
 
         # Append current state to state_log
         self.state_log = self.state_log.append(current_state_df)
         self.state_log.reset_index(drop=True, inplace=True)
-        print("self.state_log after append:", self.state_log)
+        # print("self.state_log after append:", self.state_log)
         
         
 
