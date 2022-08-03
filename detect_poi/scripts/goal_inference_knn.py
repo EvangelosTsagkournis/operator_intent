@@ -12,7 +12,8 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 
 class GoalInferenceKNN:
     def __init__(self, markers_set):
-        self.max_log_size = 1000
+        self.max_log_size = 5000
+        self.min_log_size_knn = 100
         self.knn_number = 5
         self.state_log = pd.DataFrame()
         self.markers_set = markers_set
@@ -55,7 +56,7 @@ class GoalInferenceKNN:
         # Calculate the squared euclidean distance between the current state and the log
 
         # Initialize empty 1D array
-        euclidean_distance_squared = np.empty([self.max_log_size])
+        euclidean_distance_squared = np.empty([self.state_log.shape[0]])
 
         # Calculate and append the value to the array
         for idx, i in enumerate(state_log_array):
@@ -124,7 +125,7 @@ class GoalInferenceKNN:
 
         # print("Current state_log size:", len(self.state_log))
         # If a sufficient number of states has been recorded, use them to generate the goal
-        if len(self.state_log) > self.max_log_size:
+        if len(self.state_log) > self.min_log_size_knn:
             # Check if the size of the state log is > a value. If it is, pop the oldest entry.
             self.manage_log_size()
             # Calculate goal and goal_probability and add to current_state_df
