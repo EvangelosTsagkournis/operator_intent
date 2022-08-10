@@ -12,9 +12,9 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 
 class GoalInferenceKNN:
     def __init__(self, markers_set):
-        self.max_log_size = 5000
+        self.max_log_size = 30000
         self.min_log_size_knn = 100
-        self.knn_number = 5
+        self.knn_number = 9
         self.state_log = pd.DataFrame()
         self.markers_set = markers_set
         print(self.markers_set)
@@ -31,20 +31,16 @@ class GoalInferenceKNN:
         rospy.spin()
 
     def return_nearest_neighbors(self, current_state_df, nearest_neighbors_number):
-        # TODO: Implement the logic for finding nearest neighbors, consider not using pd.Dataframe, instead using np.array
-
-        data_columns = list(self.state_log.columns)
         
-        ## Backup plan
-        # data_columns = list(current_state_df)
-        # data_columns.append("Goal")
+        # Keep the names of the columns of the dataframe into a list
+        data_columns = list(self.state_log.columns)
 
         # Create np.array for the current state
-        # current_state_array = current_state_df.drop('Goal', axis=1).to_numpy()
         current_state_array = current_state_df.to_numpy()
 
         # Normalize the current_state_
-        current_state_array = current_state_array / current_state_array.max(axis=0)
+        current_state_array = current_state_array / \
+            current_state_array.max(axis=0)
 
         # Create np.array version of self.state_log
         # Dropping the 'Goal' column to allow for normalizing the rest of the values which are numeric
@@ -60,22 +56,22 @@ class GoalInferenceKNN:
 
         # Calculate and append the value to the array
         for idx, i in enumerate(state_log_array):
-            euclidean_distance_squared[idx] = np.sum(np.square(current_state_array - i))
+            euclidean_distance_squared[idx] = np.sum(
+                np.square(current_state_array - i))
 
         # Add the euclidean Goal array back into the state_log_array as well as the euclidean distance squared
-        state_log_array = np.append(state_log_array, self.state_log.drop(self.state_log.columns.difference(['Goal']), 1).to_numpy().reshape(-1, 1), axis=1)
-        state_log_array = np.append(state_log_array, euclidean_distance_squared.reshape(-1, 1), axis=1)
+        state_log_array = np.append(state_log_array, self.state_log.drop(
+            self.state_log.columns.difference(['Goal']), 1).to_numpy().reshape(-1, 1), axis=1)
+        state_log_array = np.append(
+            state_log_array, euclidean_distance_squared.reshape(-1, 1), axis=1)
 
         # Sort the resulting state_log_array by ascending order by the last column (index -1: euclidean_distance_squared)
-
         state_log_array = state_log_array[state_log_array[:, -1].argsort()]
 
         # After sorting the array, pick an odd number to retrieve the inference results and pick the classification with the most entries,
         # and return a data structure with the number of entries closest to the current state
-
-        df_nearest_neighbors = pd.DataFrame(state_log_array[:, :-1], columns = data_columns)
-
-        # print("df_nearest_neighbors: ", df_nearest_neighbors)
+        df_nearest_neighbors = pd.DataFrame(
+            state_log_array[:, :-1], columns=data_columns)
 
         return df_nearest_neighbors
 
@@ -112,12 +108,8 @@ class GoalInferenceKNN:
 
     # Check if the size of the state log is > a value. If it is, pop the top value.
     def manage_log_size(self):
-        # print("Before popping shape:", self.state_log.shape)
-        # self.state_log.drop(self.state_log.index[0], inplace=True)
         self.state_log = self.state_log.iloc[1:, :]
         self.state_log.reset_index(drop=True, inplace=True)
-        # print("Old log popped!")
-        # print("After popping shape:", self.state_log.shape)
 
     def callback(self, persistent_marker_collection):
         current_state_df = self.create_current_state_dataframe(
@@ -129,25 +121,22 @@ class GoalInferenceKNN:
             # Check if the size of the state log is > a value. If it is, pop the oldest entry.
             self.manage_log_size()
             # Calculate goal and goal_probability and add to current_state_df
-            nearest_states_df = self.return_nearest_neighbors(current_state_df, self.knn_number)
-            # print("Log greater than", self.max_log_size)
-            print("nearest_states_df prediction: ", nearest_states_df['Goal'].value_counts().idxmax())
+            nearest_states_df = self.return_nearest_neighbors(
+                current_state_df, self.knn_number)
+            print("nearest_states_df prediction (with dynamic clustering):\n",
+                  nearest_states_df['Goal'].value_counts().idxmax())
             # TODO: do the goal calculation based on nearest_states_df returned
-        
+
         current_goal = self.model.predict(current_state_df)
         current_goal_probability = self.model.predict_proba(
             current_state_df).max()
         current_state_df["Goal"] = current_goal
-        print("Current goal inference and probability:",current_goal, "\n", current_goal_probability, "\n")
-        # print("current_state_df:", current_state_df)
+        print("Goal inference and probability (without dynamic clustering):\n",
+              current_goal, "\n", current_goal_probability, "\n")
 
         # Append current state to state_log
         self.state_log = self.state_log.append(current_state_df)
         self.state_log.reset_index(drop=True, inplace=True)
-        # print("self.state_log after append:", self.state_log)
-        
-        
-
 
 
 if __name__ == "__main__":
