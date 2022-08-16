@@ -27,8 +27,6 @@
 // Node template
 #include "node_template.cpp"
 
-// static const std::string OPENCV_WINDOW = "Image Window";
-
 // Define Infinite (Using INT_MAX caused overflow problems)
 #define INF 10000
 
@@ -88,7 +86,6 @@ CalculateObjectDistanceAndAngle::CalculateObjectDistanceAndAngle(ros::NodeHandle
 {
   // Subscribe to input video feed and publish output video feed
   marker_loc_sub_.subscribe(nh_, "/aruco/markers_loc", 1);
-  // odometry_sub_.subscribe(nh_, "husky_velocity_controller/odom", 1);
   odometry_sub_.subscribe(nh_, "husky_base_ground_truth", 1);
   marker_coordinates_with_distance_collection_pub_ = nh_.advertise<operator_intent_msgs::marker_coordinates_with_distance_collection>("/aruco/marker_coordinates_with_distance_collection", 1);
 

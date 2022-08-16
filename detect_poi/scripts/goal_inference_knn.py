@@ -31,7 +31,7 @@ class GoalInferenceKNN:
         rospy.spin()
 
     def return_nearest_neighbors(self, current_state_df, nearest_neighbors_number):
-        
+
         # Keep the names of the columns of the dataframe into a list
         data_columns = list(self.state_log.columns)
 
@@ -78,7 +78,6 @@ class GoalInferenceKNN:
     def create_current_state_dataframe(self, persistent_marker_collection):
         current_state_df = pd.DataFrame()
         # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict(*)
-        # At a later stage, consider the possibility of using self.model.predict_proba(*) to represent the probabilities of each label
 
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
@@ -115,7 +114,6 @@ class GoalInferenceKNN:
         current_state_df = self.create_current_state_dataframe(
             persistent_marker_collection)
 
-        # print("Current state_log size:", len(self.state_log))
         # If a sufficient number of states has been recorded, use them to generate the goal
         if len(self.state_log) > self.min_log_size_knn:
             # Check if the size of the state log is > a value. If it is, pop the oldest entry.
@@ -125,11 +123,9 @@ class GoalInferenceKNN:
                 current_state_df, self.knn_number)
             print("nearest_states_df prediction (with dynamic clustering):\n",
                   nearest_states_df['Goal'].value_counts().idxmax())
-            # TODO: do the goal calculation based on nearest_states_df returned
 
         current_goal = self.model.predict(current_state_df)
-        current_goal_probability = self.model.predict_proba(
-            current_state_df).max()
+        current_goal_probability = self.model.predict_proba(current_state_df).max()
         current_state_df["Goal"] = current_goal
         print("Goal inference and probability (without dynamic clustering):\n",
               current_goal, "\n", current_goal_probability, "\n")
@@ -141,8 +137,7 @@ class GoalInferenceKNN:
 
 if __name__ == "__main__":
     rospack = rospkg.RosPack()
-    with open(os.path.join(rospack.get_path(
-            "detect_poi"), "config/config.txt")) as f:
+    with open(os.path.join(rospack.get_path("detect_poi"), "config/config.txt")) as f:
         markers_set = f.read().split(',')
     try:
         gi = GoalInferenceKNN(markers_set)

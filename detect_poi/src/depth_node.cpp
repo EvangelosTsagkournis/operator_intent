@@ -33,12 +33,6 @@ public:
 
     cv::namedWindow(OPENCV_WINDOW);
   }
-  /*
-    ~Depth_Image()
-    {
-      cv::destroyWindow(OPENCV_WINDOW);
-    }
-  */
 
   void imageCallback(const sensor_msgs::ImageConstPtr &msg)
   {
@@ -52,36 +46,15 @@ public:
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
-    //###################################################################################################
-    // Normalize the image from [0, 255] to [0, 1]
     cv::Mat norm_image;
     cv_ptr->image.convertTo(norm_image, CV_32FC1, 1.0 / 5, 0);
-    // cv::normalize(cv_ptr->image, norm_image, 0, 1, cv::NORM_MINMAX, CV_32FC1); //cv::NORM_MINMAX
     //  Update GUI Window
     std::cout << norm_image.at<float>(0, 0) << std::endl;
     cv::imshow(OPENCV_WINDOW, norm_image);
-    // cv::imshow(OPENCV_WINDOW, cv_ptr->image);
     cv::waitKey(3);
 
     // Output modified video stream
     image_pub_.publish(cv_ptr->toImageMsg());
-    //###################################################################################################
-
-    /*######################################## WORKS ####################################################
-    // Normalize the image from [0, 255] to [0, 1]
-    cv::Mat norm_image;
-    cv_ptr->image.convertTo(norm_image, CV_32FC1, 1.0/5, 0);
-    //cv::normalize(cv_ptr->image, norm_image, 0, 1, cv::NORM_MINMAX, CV_32FC1); //cv::NORM_MINMAX
-    // Update GUI Window
-    std::cout << norm_image.at<float>(0,0) << std::endl;
-    cv::imshow(OPENCV_WINDOW, norm_image);
-    //cv::imshow(OPENCV_WINDOW, cv_ptr->image);
-    cv::waitKey(3);
-
-    // Output modified video stream
-    image_pub_.publish(cv_ptr->toImageMsg());
-    */
-    //###################################### WORKS ####################################################
   }
 };
 
