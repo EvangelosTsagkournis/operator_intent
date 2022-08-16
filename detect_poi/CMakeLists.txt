@@ -151,7 +151,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(generate_markers src/generate_markers.cpp)
-# add_executable(depth_node src/depth_node.cpp)
+add_executable(depth_node src/depth_node.cpp)
 add_executable(detect_aruco_node src/detect_aruco.cpp)
 add_executable(calculate_object_distance_angle_node src/calculate_object_distance_and_angle.cpp)
 add_executable(persistent_markers_node src/persistent_markers.cpp)
@@ -171,6 +171,11 @@ add_dependencies(persistent_markers_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${c
 
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(depth_node
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
+
 target_link_libraries(generate_markers
     ${OpenCV_LIBRARIES}
 )

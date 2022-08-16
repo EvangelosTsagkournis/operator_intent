@@ -49,7 +49,7 @@ public:
     cv::Mat norm_image;
     cv_ptr->image.convertTo(norm_image, CV_32FC1, 1.0 / 5, 0);
     //  Update GUI Window
-    std::cout << norm_image.at<float>(0, 0) << std::endl;
+    // std::cout << norm_image.at<float>(0, 0) << std::endl;
     cv::imshow(OPENCV_WINDOW, norm_image);
     cv::waitKey(3);
 
