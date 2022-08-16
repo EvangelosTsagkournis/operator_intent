@@ -14,7 +14,7 @@
 // Aruco relevant libraries
 #include <opencv2/aruco.hpp>
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp> // <-- was not needed, as it's already included in line 7
+#include <opencv2/highgui.hpp>
 
 // Node template
 #include "node_template.cpp"
@@ -33,10 +33,6 @@ private:
     // Initialize vectors for the ID's of the markers and the marker corners
     std::vector<int> marker_ids;
     std::vector<std::vector<cv::Point2f>> marker_corners;
-
-    // The below are commented out, as they are only for the rejected candidates for tags
-    // std::vector<std::vector<cv::Point2f>> marker_corners, rejectedCandidates;
-    // cv::Ptr<cv::aruco::DetectorParameters> parameters;
 
     // Define the dictionary to be detected
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
@@ -81,7 +77,6 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr &msg)
             point_2dc.y = marker_corners[i][j].y;
             marker.corner_points[j] = point_2dc;
         }
-        // marker_collection.header.stamp = ros::Time::now();
         marker_collection.markers.push_back(marker);
     }
     marker_collection.header.stamp = ros::Time::now();
@@ -90,9 +85,6 @@ void DetectAruco::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     // Update GUI Window
     cv::imshow(OPENCV_WINDOW, cv_ptr->image);
     cv::waitKey(3);
-
-    // Output modified video stream
-    // image_pub_.publish(cv_ptr->toImageMsg());
 }
 
 DetectAruco::DetectAruco(ros::NodeHandle nh, ros::NodeHandle pnh)
