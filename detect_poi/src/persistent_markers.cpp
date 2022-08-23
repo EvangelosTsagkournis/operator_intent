@@ -38,7 +38,6 @@ private:
                   const nav_msgs::OdometryConstPtr &odometry_msg);
     double calculateDistanceOfTwoPoints(Point &p1, Point &p2);
     void updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg);
-    double calculateTimeStepNanoSeconds(ros::Time now_timestamp, ros::Time previous_timestamp);
     double calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity);
 
 public:
@@ -134,21 +133,10 @@ void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::
     return;
 }
 
-double PersistentMarkers::calculateTimeStepNanoSeconds(ros::Time now_timestamp, ros::Time previous_timestamp)
-{
-    double now_time_nanoseconds = now_timestamp.sec * 1000 + now_timestamp.nsec;
-    double previous_time_nanoseconds = previous_timestamp.sec * 1000 + now_timestamp.nsec;
-    return (now_time_nanoseconds - previous_time_nanoseconds);
-}
-
 void PersistentMarkers::callBack(
     const operator_intent_msgs::marker_coordinates_with_distance_collectionConstPtr &marker_coordinates_with_distance_collection_msg,
     const nav_msgs::OdometryConstPtr &odometry_msg)
 {
-    double timestep = calculateTimeStepNanoSeconds(
-        marker_coordinates_with_distance_collection_msg->header.stamp,
-        persistent_marker_collection.header.stamp);
-
     persistent_marker_collection.header = marker_coordinates_with_distance_collection_msg->header;
     persistent_marker_collection.camera_height = marker_coordinates_with_distance_collection_msg->camera_height;
     persistent_marker_collection.camera_width = marker_coordinates_with_distance_collection_msg->camera_width;
