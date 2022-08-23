@@ -33,8 +33,11 @@
 // Found by searching for the kinect_camera.urdf.xacro file in husky/husky_description/urdf/accessories
 #define KINECT_CAMERA_HORIZONTAL_FOV_DEG 70
 
+#define INVALID_DISTANCE -1
+
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
+
 
 class CalculateObjectDistanceAndAngle
 {
@@ -103,7 +106,7 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
 {
   // If position is invalid
   if ((intersection_point.y >= depth_image->height) || (intersection_point.x >= depth_image->width))
-    return -1;
+    return INVALID_DISTANCE;
   int index = (intersection_point.y * depth_image->step) + (intersection_point.x * (depth_image->step / depth_image->width));
   // If data is 4 byte floats (rectified depth image)
   if ((depth_image->step / depth_image->width) == 4)
@@ -119,7 +122,7 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
       // Make sure data is valid (check if NaN)
       if (depth_data.float_data == depth_data.float_data)
         return int(depth_data.float_data * 1000);
-      return -1; // If depth data invalid
+      return INVALID_DISTANCE; // If depth data invalid
     }
     // else, one little endian, one big endian
     for (i = 0; i < 4; i++)
@@ -127,7 +130,7 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
     // Make sure data is valid (check if NaN)
     if (depth_data.float_data == depth_data.float_data)
       return int(depth_data.float_data * 1000);
-    return -1; // If depth data invalid
+    return INVALID_DISTANCE; // If depth data invalid
   }
   // Otherwise, data is 2 byte integers (raw depth image)
   int temp_val;
@@ -140,7 +143,7 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
   // Make sure data is valid (check if NaN)
   if (temp_val == temp_val)
     return temp_val;
-  return -1; // If depth data invalid
+  return INVALID_DISTANCE; // If depth data invalid
 }
 
 double CalculateObjectDistanceAndAngle::findAngleInRadiansFromCameraPointOfReference(cv::Point2i intersection_point)
