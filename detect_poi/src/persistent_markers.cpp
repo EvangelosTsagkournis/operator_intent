@@ -168,7 +168,9 @@ void PersistentMarkers::callBack(
                 if (marker_coordinates_with_distance_collection_msg->markers[i].marker_id == persistent_marker_collection.markers[j].marker_id)
                 {
                     // And if the marker isn't out of bounds for the depth sensor
-                    if (!(marker_coordinates_with_distance_collection_msg->markers[i].marker_world_x == 0.0 && marker_coordinates_with_distance_collection_msg->markers[i].marker_world_y == 0.0 && marker_coordinates_with_distance_collection_msg->markers[i].distance_mm == -1.0))
+                    if (!(marker_coordinates_with_distance_collection_msg->markers[i].marker_world_x == 0.0 
+                        && marker_coordinates_with_distance_collection_msg->markers[i].marker_world_y == 0.0 
+                        && marker_coordinates_with_distance_collection_msg->markers[i].distance_mm == -1.0))
                     {
                         // Update the marker in the persistent_marker_collection with the one in the marker_coordinates_with_distance_collection_msg
                         persistent_marker_collection.markers[j] = marker_coordinates_with_distance_collection_msg->markers[i];
