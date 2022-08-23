@@ -111,9 +111,9 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
     U_FloatConvert depth_data;
     int i, endian_check = 1;
     // If big endian
-    if ((depth_image->is_bigendian && (*(char *)&endian_check != 1)) || // Both big endian
-        ((!depth_image->is_bigendian) && (*(char *)&endian_check == 1)))
-    { // Both lil endian
+    if ((depth_image->is_bigendian && (*(char *)&endian_check != 1)) ||  // Both big endian
+        ((!depth_image->is_bigendian) && (*(char *)&endian_check == 1))) // Both lil endian
+    {
       for (i = 0; i < 4; i++)
         depth_data.byte_data[i] = depth_image->data[index + i];
       // Make sure data is valid (check if NaN)
