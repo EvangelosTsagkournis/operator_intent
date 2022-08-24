@@ -41,6 +41,9 @@ private:
     double calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity);
     double calculateAngleOfMarkerFromRobotFrameOfReference(Point robot_position, Point marker_position, nav_msgs::Odometry robot_odometry);
 
+    double dotProduct(Point vector_1, Point vector_2);
+    double determinant(Point vector_1, Point vector_2);
+
 public:
     PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh);
 };
@@ -80,41 +83,39 @@ double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point 
     return approaching_speed_meters_per_sec;
 }
 
+double PersistentMarkers::dotProduct(Point vector_1, Point vector_2)
+{
+    return (vector_1.x * vector_2.x + vector_1.y * vector_2.y);
+}
+double PersistentMarkers::determinant(Point vector_1, Point vector_2)
+{
+    return (vector_1.x * vector_2.y - vector_1.y * vector_2.x);
+}
+
 double PersistentMarkers::calculateAngleOfMarkerFromRobotFrameOfReference(Point robot_position, Point marker_position, nav_msgs::Odometry robot_odometry)
 {
-    double marker_world_angle_from_robot_base = atan2(marker_position.y - robot_position.y, marker_position.x - robot_position.x);
-        if ((marker_world_angle_from_robot_base) < 0)
-        {
-            marker_world_angle_from_robot_base = 2 * M_PI - marker_world_angle_from_robot_base;
-        }
 
-        tf2::Quaternion q(
-            robot_odometry.pose.pose.orientation.x,
-            robot_odometry.pose.pose.orientation.y,
-            robot_odometry.pose.pose.orientation.z,
-            robot_odometry.pose.pose.orientation.w);
+    double marker_x_difference = marker_position.x - robot_position.x;
+    double marker_y_difference = marker_position.y - robot_position.y;
+    double marker_vector_magnitude = sqrt(marker_x_difference * marker_x_difference + marker_y_difference * marker_y_difference);
+    Point marker_world_angle_from_robot_position_normalized = {marker_x_difference / marker_vector_magnitude, marker_y_difference / marker_vector_magnitude};
 
-        tf2::Matrix3x3 m(q);
-        double roll, pitch, yaw;
-        m.getRPY(roll, pitch, yaw);
-        double robot_world_angle = yaw;
+    tf2::Quaternion q(
+        robot_odometry.pose.pose.orientation.x,
+        robot_odometry.pose.pose.orientation.y,
+        robot_odometry.pose.pose.orientation.z,
+        robot_odometry.pose.pose.orientation.w);
 
-        if (robot_world_angle < 0)
-        {
-            robot_world_angle = 2 * M_PI + robot_world_angle;
-        }
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
 
-        double marker_from_robot_angle = marker_world_angle_from_robot_base - robot_world_angle;
-        if (marker_from_robot_angle > M_PI)
-        {
-            marker_from_robot_angle = 2 * M_PI - marker_from_robot_angle;
-        }
-        else if (marker_from_robot_angle < -M_PI)
-        {
-            marker_from_robot_angle = 2 * M_PI + marker_from_robot_angle;
-        }
+    Point robot_world_direction_vector_normalized = {cos(yaw), sin(yaw)};
 
-        return marker_from_robot_angle;
+    return atan2(
+        determinant(robot_world_direction_vector_normalized, marker_world_angle_from_robot_position_normalized),
+        dotProduct(robot_world_direction_vector_normalized, marker_world_angle_from_robot_position_normalized)
+    );
 }
 
 void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg)
