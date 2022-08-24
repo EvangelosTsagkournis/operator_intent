@@ -39,6 +39,7 @@ private:
     double calculateDistanceOfTwoPoints(Point &p1, Point &p2);
     void updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg);
     double calculateApproachingSpeed(Point robot_position, Point marker_position, geometry_msgs::Vector3 robot_linear_velocity);
+    double calculateAngleOfMarkerFromRobotFrameOfReference(Point robot_position, Point marker_position, nav_msgs::Odometry robot_odometry);
 
 public:
     PersistentMarkers(ros::NodeHandle nh, ros::NodeHandle pnh);
@@ -79,35 +80,19 @@ double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point 
     return approaching_speed_meters_per_sec;
 }
 
-void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg)
+double PersistentMarkers::calculateAngleOfMarkerFromRobotFrameOfReference(Point robot_position, Point marker_position, nav_msgs::Odometry robot_odometry)
 {
-    // Set robot's position in the world
-    Point robot_position = {odometry_msg->pose.pose.position.x, odometry_msg->pose.pose.position.y};
-    for (int i = 0; i < persistent_marker_collection.markers.size(); i++)
-    {
-        // Set marker's position in the world
-        Point marker_position = {persistent_marker_collection.markers[i].marker_world_x, persistent_marker_collection.markers[i].marker_world_y};
-
-        // Update approach_speed
-        persistent_marker_collection.markers[i].approaching_speed_meters_per_sec = calculateApproachingSpeed(
-            robot_position, marker_position,
-            odometry_msg->twist.twist.linear);
-
-        // Update distance
-        persistent_marker_collection.markers[i].distance_mm = calculateDistanceOfTwoPoints(robot_position, marker_position) * 1000;
-
-        // Update angle
-        double marker_world_angle_from_robot_base = atan2(marker_position.y - robot_position.y, marker_position.x - robot_position.x);
+    double marker_world_angle_from_robot_base = atan2(marker_position.y - robot_position.y, marker_position.x - robot_position.x);
         if ((marker_world_angle_from_robot_base) < 0)
         {
             marker_world_angle_from_robot_base = 2 * M_PI - marker_world_angle_from_robot_base;
         }
 
         tf2::Quaternion q(
-            odometry_msg->pose.pose.orientation.x,
-            odometry_msg->pose.pose.orientation.y,
-            odometry_msg->pose.pose.orientation.z,
-            odometry_msg->pose.pose.orientation.w);
+            robot_odometry.pose.pose.orientation.x,
+            robot_odometry.pose.pose.orientation.y,
+            robot_odometry.pose.pose.orientation.z,
+            robot_odometry.pose.pose.orientation.w);
 
         tf2::Matrix3x3 m(q);
         double roll, pitch, yaw;
@@ -128,7 +113,29 @@ void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::
         {
             marker_from_robot_angle = 2 * M_PI + marker_from_robot_angle;
         }
-        persistent_marker_collection.markers[i].angle_radians = marker_from_robot_angle;
+
+        return marker_from_robot_angle;
+}
+
+void PersistentMarkers::updatePersistentMarkerCollectionFromRobotPose(nav_msgs::OdometryConstPtr odometry_msg)
+{
+    // Set robot's position in the world
+    Point robot_position = {odometry_msg->pose.pose.position.x, odometry_msg->pose.pose.position.y};
+    for (int i = 0; i < persistent_marker_collection.markers.size(); i++)
+    {
+        // Set marker's position in the world
+        Point marker_position = {persistent_marker_collection.markers[i].marker_world_x, persistent_marker_collection.markers[i].marker_world_y};
+
+        // Update approach_speed
+        persistent_marker_collection.markers[i].approaching_speed_meters_per_sec = calculateApproachingSpeed(
+            robot_position, marker_position,
+            odometry_msg->twist.twist.linear);
+
+        // Update distance
+        persistent_marker_collection.markers[i].distance_mm = calculateDistanceOfTwoPoints(robot_position, marker_position) * 1000;
+
+        // Update angle
+        persistent_marker_collection.markers[i].angle_radians = calculateAngleOfMarkerFromRobotFrameOfReference(robot_position, marker_position, *odometry_msg);
     }
     return;
 }
@@ -156,9 +163,7 @@ void PersistentMarkers::callBack(
                 if (marker_coordinates_with_distance_collection_msg->markers[i].marker_id == persistent_marker_collection.markers[j].marker_id)
                 {
                     // And if the marker isn't out of bounds for the depth sensor
-                    if (!(marker_coordinates_with_distance_collection_msg->markers[i].marker_world_x == 0.0 
-                        && marker_coordinates_with_distance_collection_msg->markers[i].marker_world_y == 0.0 
-                        && marker_coordinates_with_distance_collection_msg->markers[i].distance_mm == -1.0))
+                    if (!(marker_coordinates_with_distance_collection_msg->markers[i].marker_world_x == 0.0 && marker_coordinates_with_distance_collection_msg->markers[i].marker_world_y == 0.0 && marker_coordinates_with_distance_collection_msg->markers[i].distance_mm == -1.0))
                     {
                         // Update the marker in the persistent_marker_collection with the one in the marker_coordinates_with_distance_collection_msg
                         persistent_marker_collection.markers[j] = marker_coordinates_with_distance_collection_msg->markers[i];
