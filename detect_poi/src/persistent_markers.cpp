@@ -83,13 +83,14 @@ double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point 
     return approaching_speed_meters_per_sec;
 }
 
-double PersistentMarkers::dotProduct(Point vector_1, Point vector_2)
-{
-    return (vector_1.x * vector_2.x + vector_1.y * vector_2.y);
-}
 double PersistentMarkers::determinant(Point vector_1, Point vector_2)
 {
     return (vector_1.x * vector_2.y - vector_1.y * vector_2.x);
+}
+
+double PersistentMarkers::dotProduct(Point vector_1, Point vector_2)
+{
+    return (vector_1.x * vector_2.x + vector_1.y * vector_2.y);
 }
 
 double PersistentMarkers::calculateAngleOfMarkerFromRobotFrameOfReference(Point robot_position, Point marker_position, nav_msgs::Odometry robot_odometry)
