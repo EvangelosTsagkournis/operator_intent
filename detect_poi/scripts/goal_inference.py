@@ -30,7 +30,7 @@ class GoalInference:
         rospy.spin()
 
     def callback(self, persistent_marker_collection):
-        prediction_df = pd.DataFrame()
+        current_state_df = pd.DataFrame()
         # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict(*)
         # At a later stage, consider the possibility of using self.model.predict_proba(*) to represent the probabilities of each label
 
@@ -38,9 +38,9 @@ class GoalInference:
         for i in persistent_marker_collection.markers:
             # If the marker_id is in the predefines set of markers we seek
             if i.marker_id in self.markers_set:
-                prediction_df["marker_{}_distance".format(i.marker_id)] = [i.distance_mm]
-                prediction_df["marker_{}_angle_radians".format(i.marker_id)] = [i.angle_radians]
-                prediction_df["marker_{}_approach_speed".format(i.marker_id)] = [i.approaching_speed_meters_per_sec]
+                current_state_df["marker_{}_distance".format(i.marker_id)] = [i.distance_mm]
+                current_state_df["marker_{}_angle_radians".format(i.marker_id)] = [i.angle_radians]
+                current_state_df["marker_{}_approach_speed".format(i.marker_id)] = [i.approaching_speed_meters_per_sec]
         
          # Creating the input  data labels from the markers_set
         input_data_labels = list()
@@ -50,9 +50,9 @@ class GoalInference:
             input_data_labels.append("marker_{}_angle_radians".format(i))
             input_data_labels.append("marker_{}_approach_speed".format(i))
         
-        prediction_df = prediction_df[input_data_labels]
+        current_state_df = current_state_df[input_data_labels]
 
-        print(self.model.predict(prediction_df), "\n", self.model.predict_proba(prediction_df), "\n")
+        print(self.model.predict(current_state_df), "\n", self.model.predict_proba(current_state_df), "\n")
 
     def model_prediction(self):
         return self.model.predict()
