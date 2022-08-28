@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import json
 import rospy
 import rospkg
 import numpy as np
@@ -17,7 +18,9 @@ class GoalInferenceKNN:
         self.knn_number = 9
         self.state_log = pd.DataFrame()
         self.markers_set = markers_set
-        print(self.markers_set)
+        
+        # Print the configuration for the markers to look for
+        print("Markers set: ", self.markers_set)
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
         # Loading the model saved in "${detect_poi}/ml_models/"
@@ -137,8 +140,11 @@ class GoalInferenceKNN:
 
 if __name__ == "__main__":
     rospack = rospkg.RosPack()
-    with open(os.path.join(rospack.get_path("detect_poi"), "config/config.txt")) as f:
-        markers_set = f.read().split(',')
+    with open(os.path.join(rospack.get_path("detect_poi"), "config/config.json")) as f:
+        json_content = json.loads(f.read())
+        markers_set = list()
+        for marker in json_content["markers"]:
+            markers_set.append(marker["id"])
     try:
         gi = GoalInferenceKNN(markers_set)
     except rospy.ROSInterruptException:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import json
 import rospy
 import rospkg
 import numpy as np
@@ -13,7 +14,9 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 class GoalInference:
     def __init__(self, markers_set):
         self.markers_set = markers_set
-        print(self.markers_set)
+        
+        # Print the configuration for the markers to look for
+        print("Markers set: ", self.markers_set)
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
         # Loading the model saved in "${detect_poi}/ml_models/"
@@ -60,10 +63,11 @@ class GoalInference:
 
 if __name__ == "__main__":
     rospack = rospkg.RosPack()
-    with open (os.path.join(rospack.get_path(
-            "detect_poi"), "config/config.txt")) as f:
-            data = f.read()
-            markers_set = data.split(',')
+    with open(os.path.join(rospack.get_path("detect_poi"), "config/config.json")) as f:
+        json_content = json.loads(f.read())
+        markers_set = list()
+        for marker in json_content["markers"]:
+            markers_set.append(marker["id"])
     try:
         gi = GoalInference(markers_set)
     except rospy.ROSInterruptException:
