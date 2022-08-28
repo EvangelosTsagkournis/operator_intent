@@ -85,7 +85,7 @@ class GoalInferenceKNN:
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
             # If the marker_id is in the predefines set of markers we seek
-            if str(i.marker_id) in self.markers_set:
+            if i.marker_id in self.markers_set:
                 current_state_df["marker_{}_distance".format(i.marker_id)] = [
                     i.distance_mm]
                 current_state_df["marker_{}_angle_radians".format(i.marker_id)] = [
@@ -93,18 +93,15 @@ class GoalInferenceKNN:
                 current_state_df["marker_{}_approach_speed".format(i.marker_id)] = [
                     i.approaching_speed_meters_per_sec]
 
-        # Rearranging the dataframe in the correct order to feed into the model
-        current_state_df = current_state_df[[
-            "marker_0_distance",
-            "marker_0_angle_radians",
-            "marker_0_approach_speed",
-            "marker_8_distance",
-            "marker_8_angle_radians",
-            "marker_8_approach_speed",
-            "marker_15_distance",
-            "marker_15_angle_radians",
-            "marker_15_approach_speed"
-        ]]
+        # Creating the input  data labels from the markers_set
+        input_data_labels = list()
+
+        for i in self.markers_set:
+            input_data_labels.append("marker_{}_distance".format(i))
+            input_data_labels.append("marker_{}_angle_radians".format(i))
+            input_data_labels.append("marker_{}_approach_speed".format(i))
+            
+        current_state_df = current_state_df[input_data_labels]
 
         return current_state_df
 
@@ -144,7 +141,7 @@ if __name__ == "__main__":
         json_content = json.loads(f.read())
         markers_set = list()
         for marker in json_content["markers"]:
-            markers_set.append(marker["id"])
+            markers_set.append(int(marker["id"]))
     try:
         gi = GoalInferenceKNN(markers_set)
     except rospy.ROSInterruptException:

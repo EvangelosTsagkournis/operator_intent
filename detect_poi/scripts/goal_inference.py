@@ -37,23 +37,20 @@ class GoalInference:
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
             # If the marker_id is in the predefines set of markers we seek
-            if str(i.marker_id) in self.markers_set:
+            if i.marker_id in self.markers_set:
                 prediction_df["marker_{}_distance".format(i.marker_id)] = [i.distance_mm]
                 prediction_df["marker_{}_angle_radians".format(i.marker_id)] = [i.angle_radians]
                 prediction_df["marker_{}_approach_speed".format(i.marker_id)] = [i.approaching_speed_meters_per_sec]
         
-        # Rearranging the dataframe in the correct order to feed into the model
-        prediction_df = prediction_df[[
-            "marker_0_distance",
-            "marker_0_angle_radians",
-            "marker_0_approach_speed",
-            "marker_8_distance",
-            "marker_8_angle_radians",
-            "marker_8_approach_speed",
-            "marker_15_distance",
-            "marker_15_angle_radians",
-            "marker_15_approach_speed"
-        ]]
+         # Creating the input  data labels from the markers_set
+        input_data_labels = list()
+
+        for i in self.markers_set:
+            input_data_labels.append("marker_{}_distance".format(i))
+            input_data_labels.append("marker_{}_angle_radians".format(i))
+            input_data_labels.append("marker_{}_approach_speed".format(i))
+        
+        prediction_df = prediction_df[input_data_labels]
 
         print(self.model.predict(prediction_df), "\n", self.model.predict_proba(prediction_df), "\n")
 
