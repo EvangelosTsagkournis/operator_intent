@@ -86,6 +86,7 @@ if __name__ == "__main__":
         markers_set = list()
         for marker in json_content["markers"]:
             markers_set.append(marker["id"])
+        markers_set.sort()
     try:
         gi = GoalInference(markers_set)
     except rospy.ROSInterruptException:
