@@ -15,6 +15,7 @@ add_message_files(
   marker_coordinates_with_distance.msg
   marker_coordinates_with_distance_collection.msg
   operator_intent_inference.msg
+  operator_intent_inference_knn.msg
 )
 
 generate_messages(
