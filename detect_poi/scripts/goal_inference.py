@@ -4,6 +4,7 @@ import os
 import json
 import rospy
 import rospkg
+import std_msgs.msg
 from operator_intent_msgs.msg import operator_intent_inference
 import numpy as np
 import pandas as pd
@@ -64,6 +65,10 @@ class GoalInference:
 
         # Construct the message to be sent
         operator_intent_inference_msg = operator_intent_inference()
+        # Fill the fields of the message
+        h = std_msgs.msg.Header()
+        h.stamp = rospy.Time.now()
+        operator_intent_inference_msg.header = h
         operator_intent_inference_msg.prediction = str(prediction)
         operator_intent_inference_msg.prediction_probability = prediction_probability
 

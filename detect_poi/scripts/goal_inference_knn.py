@@ -4,6 +4,7 @@ import os
 import json
 import rospy
 import rospkg
+import std_msgs.msg
 from operator_intent_msgs.msg import operator_intent_inference_knn
 import numpy as np
 import pandas as pd
@@ -128,6 +129,11 @@ class GoalInferenceKNN:
                 operator_intent_inference_knn_classification)
             # Construct the message to be sent
             operator_intent_inference_knn_msg = operator_intent_inference_knn()
+
+            # Fill the fields of the message
+            h = std_msgs.msg.Header()
+            h.stamp = rospy.Time.now()
+            operator_intent_inference_knn_msg.header = h
             operator_intent_inference_knn_msg.prediction = operator_intent_inference_knn_classification
 
             # Publish the message
