@@ -4,6 +4,7 @@ import os
 import json
 import rospy
 import rospkg
+from operator_intent_msgs.msg import operator_intent_inference
 import numpy as np
 import pandas as pd
 import joblib
@@ -14,7 +15,7 @@ from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 class GoalInference:
     def __init__(self, markers_set):
         self.markers_set = markers_set
-        
+
         # Print the configuration for the markers to look for
         print("Markers set: ", self.markers_set)
         rospack = rospkg.RosPack()
@@ -24,24 +25,28 @@ class GoalInference:
             "detect_poi"), "ml_models/marker_prediction_model.sav"))
 
         # Initialize ros stuff
-        rospy.init_node('intent_inference_node', anonymous=True)
-        rospy.Subscriber("/aruco/persistent_marker_coordinates_with_distance_collection",
-                         marker_coordinates_with_distance_collection, self.callback, queue_size=1)
+        rospy.init_node('operator_intent_inference_node', anonymous=True)
+        self.persistent_marker_sub = rospy.Subscriber("/aruco/persistent_marker_coordinates_with_distance_collection",
+                                                 marker_coordinates_with_distance_collection, self.callback, queue_size=1)
+        self.operator_intent_pub = rospy.Publisher("/operator_intent_inference", operator_intent_inference, queue_size=1)
         rospy.spin()
 
     def callback(self, persistent_marker_collection):
         current_state_df = pd.DataFrame()
-        # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict(*)
+        # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict()
         # At a later stage, consider the possibility of using self.model.predict_proba(*) to represent the probabilities of each label
 
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
             # If the marker_id is in the predefines set of markers we seek
             if i.marker_id in self.markers_set:
-                current_state_df["marker_{}_distance".format(i.marker_id)] = [i.distance_mm]
-                current_state_df["marker_{}_angle_radians".format(i.marker_id)] = [i.angle_radians]
-                current_state_df["marker_{}_approach_speed".format(i.marker_id)] = [i.approaching_speed_meters_per_sec]
-        
+                current_state_df["marker_{}_distance".format(i.marker_id)] = [
+                    i.distance_mm]
+                current_state_df["marker_{}_angle_radians".format(i.marker_id)] = [
+                    i.angle_radians]
+                current_state_df["marker_{}_approach_speed".format(i.marker_id)] = [
+                    i.approaching_speed_meters_per_sec]
+
          # Creating the input  data labels from the markers_set
         input_data_labels = list()
 
@@ -49,10 +54,21 @@ class GoalInference:
             input_data_labels.append("marker_{}_distance".format(i))
             input_data_labels.append("marker_{}_angle_radians".format(i))
             input_data_labels.append("marker_{}_approach_speed".format(i))
-        
+
+        # Move the dataframe columns to the appropriate place
         current_state_df = current_state_df[input_data_labels]
 
-        print(self.model.predict(current_state_df), "\n", self.model.predict_proba(current_state_df), "\n")
+        # Make the prediction and get the probability for it
+        prediction = self.model.predict(current_state_df)
+        prediction_probability = self.model.predict_proba(current_state_df).max()
+
+        # Construct the message to be sent
+        operator_intent_inference_msg = operator_intent_inference()
+        operator_intent_inference_msg.prediction = str(prediction)
+        operator_intent_inference_msg.prediction_probability = prediction_probability
+
+        # Publish the message
+        self.operator_intent_pub.publish(operator_intent_inference_msg)
 
     def model_prediction(self):
         return self.model.predict()

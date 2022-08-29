@@ -4,6 +4,7 @@ import os
 import json
 import rospy
 import rospkg
+from operator_intent_msgs.msg import operator_intent_inference_knn
 import numpy as np
 import pandas as pd
 import joblib
@@ -29,8 +30,9 @@ class GoalInferenceKNN:
 
         # Initialize ros stuff
         rospy.init_node('intent_inference_knn_node', anonymous=True)
-        rospy.Subscriber("/aruco/persistent_marker_coordinates_with_distance_collection",
-                         marker_coordinates_with_distance_collection, self.callback, queue_size=1)
+        self.persistent_marker_sub = rospy.Subscriber("/aruco/persistent_marker_coordinates_with_distance_collection",
+                                                 marker_coordinates_with_distance_collection, self.callback, queue_size=1)
+        self.operator_intent_pub = rospy.Publisher("/operator_intent_inference_knn", operator_intent_inference_knn, queue_size=1)
         rospy.spin()
 
     def return_nearest_neighbors(self, current_state_df, nearest_neighbors_number):
@@ -80,7 +82,7 @@ class GoalInferenceKNN:
 
     def create_current_state_dataframe(self, persistent_marker_collection):
         current_state_df = pd.DataFrame()
-        # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict(*)
+        # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict()
 
         # For every marker in the persistent collection
         for i in persistent_marker_collection.markers:
@@ -121,8 +123,15 @@ class GoalInferenceKNN:
             # Calculate goal and goal_probability and add to current_state_df
             nearest_states_df = self.return_nearest_neighbors(
                 current_state_df, self.knn_number)
-            print("nearest_states_df prediction (with dynamic clustering):\n",
-                  nearest_states_df['Goal'].value_counts().idxmax())
+            operator_intent_inference_knn_classification = nearest_states_df['Goal'].value_counts().idxmax()
+            print("nearest_states_df prediction (with dynamic clustering):\n", 
+                operator_intent_inference_knn_classification)
+            # Construct the message to be sent
+            operator_intent_inference_knn_msg = operator_intent_inference_knn()
+            operator_intent_inference_knn_msg.prediction = operator_intent_inference_knn_classification
+
+            # Publish the message
+            self.operator_intent_pub.publish(operator_intent_inference_knn_msg)
 
         current_goal = self.model.predict(current_state_df)
         current_goal_probability = self.model.predict_proba(current_state_df).max()
