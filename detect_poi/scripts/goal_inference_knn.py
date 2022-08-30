@@ -17,7 +17,7 @@ class GoalInferenceKNN:
     def __init__(self, markers_set):
         self.max_log_size = 30000
         self.min_log_size_knn = 100
-        self.knn_number = 9
+        self.knn_size = 3
         self.state_log = pd.DataFrame()
         self.markers_set = markers_set
         
@@ -123,7 +123,7 @@ class GoalInferenceKNN:
             self.manage_log_size()
             # Calculate goal and goal_probability and add to current_state_df
             nearest_states_df = self.return_nearest_neighbors(
-                current_state_df, self.knn_number)
+                current_state_df, self.knn_size)
             operator_intent_inference_knn_classification = nearest_states_df['Goal'].value_counts().idxmax()
             print("nearest_states_df prediction (with dynamic clustering):\n", 
                 operator_intent_inference_knn_classification)
