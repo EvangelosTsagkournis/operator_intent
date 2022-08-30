@@ -17,7 +17,7 @@ class GoalInferenceKNN:
     def __init__(self, markers_set):
         self.max_log_size = 30000
         self.min_log_size_knn = 100
-        self.knn_size = 3
+        self.knn_size = 5
         self.state_log = pd.DataFrame()
         self.markers_set = markers_set
         
