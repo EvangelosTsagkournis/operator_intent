@@ -65,7 +65,7 @@ class GoalInferenceKNN:
             euclidean_distance_squared[idx] = np.sum(
                 np.square(current_state_array - i))
 
-        # Add the euclidean Goal array back into the state_log_array as well as the euclidean distance squared
+        # Add the Goal array back into the state_log_array as well as the euclidean distance squared
         state_log_array = np.append(state_log_array, self.state_log.drop(
             self.state_log.columns.difference(['Goal']), 1).to_numpy().reshape(-1, 1), axis=1)
         state_log_array = np.append(
@@ -77,7 +77,7 @@ class GoalInferenceKNN:
         # After sorting the array, pick an odd number to retrieve the inference results and pick the classification with the most entries,
         # and return a data structure with the number of entries closest to the current state
         df_nearest_neighbors = pd.DataFrame(
-            state_log_array[:, :-1], columns=data_columns)
+            state_log_array[:self.knn_size, :-1], columns=data_columns)
 
         return df_nearest_neighbors
 
