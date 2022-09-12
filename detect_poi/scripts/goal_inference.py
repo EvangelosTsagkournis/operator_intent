@@ -6,7 +6,6 @@ import rospy
 import rospkg
 import std_msgs.msg
 from operator_intent_msgs.msg import operator_intent_inference
-import numpy as np
 import pandas as pd
 import joblib
 from collections import Counter
@@ -22,9 +21,9 @@ class GoalInference:
         self.all_markers_in_topic_flag = False
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
-        # Loading the model saved in "${detect_poi}/ml_models/"
+        # Loading the model saved in "${detect_poi}/ml_models/", it depends on the number of targets declared in the config.json file
         self.model = joblib.load(os.path.join(rospack.get_path(
-            "detect_poi"), "ml_models/marker_prediction_model.sav"))
+            "detect_poi"), "ml_models/intent_inference_model_{}_targets.sav".format(len(self.markers_set))))
 
         # Initialize ros stuff
         rospy.init_node('operator_intent_inference_node', anonymous=True)
