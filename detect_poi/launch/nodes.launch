@@ -16,4 +16,8 @@
     <param name="/use_sim_time" value="true"/>
   </node>
 
+  <node pkg="detect_poi" type="goal_inference.py" name="goal_inference" output="screen">
+    <param name="/use_sim_time" value="true"/>
+  </node>
+
 </launch>

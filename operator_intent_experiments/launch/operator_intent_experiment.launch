@@ -11,7 +11,7 @@
   <arg name="x" default="9.04"/>
   <arg name="y" default="-6.99"/>
   <arg name="z" default="0"/>
-  <arg name="yaw" default="3.14"/>
+  <arg name="yaw" default="3.141592"/>
 
   <!-- joystick teleop speed scale -->
   <arg name="scale_linear" default="0.5"/>
@@ -103,5 +103,9 @@
   <node pkg="loa_vfh" type="vfh_node" name="vfh_node" output="screen"/>
   <node pkg="shared_control_node" type="shared_control_node" name="shared_control_node" output="screen"/>
   <node pkg="delay_node" type="delay_node.py" name="delay_node" output="screen"/>
+
+  <!-- Operator Intent Inference Nodes-->
+
+  <include file="$(find detect_poi)/launch/nodes.launch"/>
 
 </launch>
