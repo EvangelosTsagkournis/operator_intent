@@ -61,11 +61,19 @@
   <exec_depend>mixed_initiative_controller</exec_depend>
   <exec_depend>move_base</exec_depend>
   <exec_depend>teleop_loa</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
 
+    <!-- gazebo_ros_paths_plugin automatically adds these to
+        GAZEBO_PLUGIN_PATH and GAZEBO_MODEL_PATH when you do this export inside
+        the package.xml file. You can then use URIs of type model://my_package/stuff. -->
+
+    <gazebo_ros                                                                 
+        gazebo_plugin_path="${prefix}/world"
+        gazebo_model_path="${prefix}/world/models" /> 
   </export>
 </package>
