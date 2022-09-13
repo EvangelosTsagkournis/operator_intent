@@ -13,6 +13,9 @@ from sklearn.ensemble import RandomForestClassifier
 from operator_intent_msgs.msg import marker_coordinates_with_distance_collection
 
 
+# WIP, however it doesn't seem to offer any advantage over goal_inference.py.
+# Marked for future removal
+
 class GoalInferenceKNN:
     def __init__(self, markers_set):
         self.max_log_size = 30000
