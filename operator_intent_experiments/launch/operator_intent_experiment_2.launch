@@ -8,7 +8,7 @@
   <arg name="urdf_extras" default=""/>
 
   <!-- spawning coordinates in gazebo -->
-  <arg name="x" default="9.04"/>
+  <arg name="x" default="15.50"/>
   <arg name="y" default="-6.99"/>
   <arg name="z" default="0"/>
   <arg name="yaw" default="3.141592"/>
@@ -19,7 +19,7 @@
 
   <!-- other parameters -->
   <arg name="map_file" default="$(find operator_intent_experiments)/world/operator_intent_map_1.yaml"/>
-  <arg name="world_name" default="$(find operator_intent_experiments)/world/operator_intent_arena.world"/>
+  <arg name="world_name" default="$(find operator_intent_experiments)/world/operator_intent_arena_2.world"/>
   <arg name="ground_truth_topic" default="husky_base_ground_truth"/>
 
   <!-- launching gazebo stuff -->
