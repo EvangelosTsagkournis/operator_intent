@@ -9,7 +9,7 @@
 
   <!-- spawning coordinates in gazebo -->
   <arg name="x" default="15.50"/>
-  <arg name="y" default="-6.99"/>
+  <arg name="y" default="-7"/>
   <arg name="z" default="0"/>
   <arg name="yaw" default="3.141592"/>
 
@@ -18,7 +18,7 @@
   <arg name="scale_angular" default="0.9"/>
 
   <!-- other parameters -->
-  <arg name="map_file" default="$(find operator_intent_experiments)/world/operator_intent_map_1.yaml"/>
+  <arg name="map_file" default="$(find operator_intent_experiments)/world/operator_intent_map_2.yaml"/>
   <arg name="world_name" default="$(find operator_intent_experiments)/world/operator_intent_arena_2.world"/>
   <arg name="ground_truth_topic" default="husky_base_ground_truth"/>
 
@@ -72,8 +72,8 @@
   <!-- Fake/perfect localization -->
   <node pkg="fake_localization" type="fake_localization" name="fake_localization">
     <remap from="base_pose_ground_truth" to="$(arg ground_truth_topic)"/>
-    <param name="delta_x" value="-10.1"/>
-    <param name="delta_y" value="7.633"/>
+    <param name="delta_x" value="-15.50"/>
+    <param name="delta_y" value="7"/>
     <param name="delta_yaw" value="3.141592"/>
   </node>
 
