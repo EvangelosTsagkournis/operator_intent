@@ -18,7 +18,6 @@ class GoalInference:
         self.markers_set = markers_set
         # Print the configuration for the markers to look for
         print("Markers set: ", self.markers_set)
-        self.all_markers_in_topic_flag = False
         rospack = rospkg.RosPack()
         self.model = RandomForestClassifier
         # Loading the model saved in "${detect_poi}/ml_models/", it depends on the number of targets declared in the config.json file
@@ -46,9 +45,8 @@ class GoalInference:
         for i in persistent_marker_collection.markers:
             persistent_marker_collection_id_list.append(i.marker_id)
 
-        self.all_markers_in_topic_flag = self.is_subset(self.markers_set, persistent_marker_collection_id_list)
 
-        if self.all_markers_in_topic_flag:
+        if self.is_subset(self.markers_set, persistent_marker_collection_id_list):
             # Logic for marshalling the data in the appropriate format to pass to the model for prediction i.e self.model.predict()
             # For every marker in the persistent collection
             for i in persistent_marker_collection.markers:
