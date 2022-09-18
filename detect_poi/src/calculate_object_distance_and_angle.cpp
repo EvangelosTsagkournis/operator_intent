@@ -30,13 +30,29 @@
 // Define Infinite (Using INT_MAX caused overflow problems)
 #define INF 10000
 
-// Found by searching for the kinect_camera.urdf.xacro file in husky/husky_description/urdf/accessories
+/* Sources online mention that a real kinect V1 (old kinect) has a resolution of 640x480,
+  and the fov's are 62 degrees horizontally and 48.6 degrees vertically, resulting in 
+  10.322580645 x 9.87654321 pixels per degree (roughly 10 x 10). 
+*/
+#define REAL_KINECT_V1_HORIZONTAL_FOV 62
+#define REAL_KINECT_V1_VERTICAL_FOV 48.6
+
+/* Found by searching for the kinect_camera.urdf.xacro file in husky/husky_description/urdf/accessories, the horizontal FOV is 70 degrees 
+  <horizontal_fov>${70.0*M_PI/180.0}</horizontal_fov>
+*/
 #define KINECT_CAMERA_HORIZONTAL_FOV_DEG 70
+
+/* Since the kinect_camera.urdf.xacro file has no mention of the vertical fov, we set it ourselves.
+  By changing the horizontal fov in the the kinect_camera.urdf.xacro, the vertical fov seems to change as well.
+  Taking for granted that the ration of horizontal_fov/vertical_fov remains constant, as well as trusting the source mentioning the
+  horizontal and vertical fov's  online, the calculated vertical fov is:
+*/
+#define KINECT_CAMERA_VERTICAL_FOV_DEG KINECT_CAMERA_HORIZONTAL_FOV_DEG * REAL_KINECT_V1_VERTICAL_FOV / REAL_KINECT_V1_HORIZONTAL_FOV
 
 #define INVALID_DISTANCE -1
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define KINECT_CAMERA_WIDTH 640
+#define KINECT_CAMERA_HEIGHT 480
 
 
 class CalculateObjectDistanceAndAngle
@@ -59,7 +75,7 @@ private:
   } U_FloatConvert;
 
   int readDepthData(cv::Point2i, sensor_msgs::ImageConstPtr depth_image);
-  double findAngleInRadiansFromCameraPointOfReference(cv::Point2i);
+  double findAngleInRadiansFromCameraPointOfReference(cv::Point2i, char axis);
   double findAngleInRadiansFromQuaternion(geometry_msgs::Quaternion &quaternion);
 
   bool findPositionOfMarker(
@@ -146,12 +162,17 @@ int CalculateObjectDistanceAndAngle::readDepthData(cv::Point2i intersection_poin
   return INVALID_DISTANCE; // If depth data invalid
 }
 
-double CalculateObjectDistanceAndAngle::findAngleInRadiansFromCameraPointOfReference(cv::Point2i intersection_point)
+double CalculateObjectDistanceAndAngle::findAngleInRadiansFromCameraPointOfReference(cv::Point2i intersection_point, char axis)
 {
-  cv::Point2i middle_pixel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-  double degrees_per_pixel = (double)KINECT_CAMERA_HORIZONTAL_FOV_DEG / (double)SCREEN_WIDTH;
-  int difference_in_x = middle_pixel.x - intersection_point.x;
-  double angleInRadians = (degrees_per_pixel * (middle_pixel.x - intersection_point.x)) * M_PI / 180;
+  double angleInRadians = 0.0;
+  cv::Point2i middle_pixel(KINECT_CAMERA_WIDTH / 2, KINECT_CAMERA_HEIGHT / 2);
+  if (axis == 'H') {
+  double degrees_per_pixel = (double)KINECT_CAMERA_HORIZONTAL_FOV_DEG / (double)KINECT_CAMERA_WIDTH;
+  angleInRadians = (degrees_per_pixel * (middle_pixel.x - intersection_point.x)) * M_PI / 180;
+  } else if (axis == 'V') {
+    double degrees_per_pixel = (double)KINECT_CAMERA_VERTICAL_FOV_DEG / (double)KINECT_CAMERA_HEIGHT;
+    angleInRadians = (degrees_per_pixel * (middle_pixel.y - intersection_point.y)) * M_PI / 180;
+  }
   return angleInRadians;
 }
 
@@ -243,9 +264,15 @@ void CalculateObjectDistanceAndAngle::callBack(
       // Assign the marker's ID
       marker_coordinates_with_distance.marker_id = marker_collection->markers[i].marker_id;
       // Write the depth data
-      marker_coordinates_with_distance.distance_mm = readDepthData(intersection_point, image);
+      double distance_to_point = readDepthData(intersection_point, image);
+      if (distance_to_point == -1.0) {
+        marker_coordinates_with_distance.distance_mm = distance_to_point;
+      } else {
+        marker_coordinates_with_distance.distance_mm = 
+          distance_to_point / cos(findAngleInRadiansFromCameraPointOfReference(intersection_point, 'V'));}
+    
       // Write the angle in radians
-      marker_coordinates_with_distance.angle_radians = findAngleInRadiansFromCameraPointOfReference(intersection_point);
+      marker_coordinates_with_distance.angle_radians = findAngleInRadiansFromCameraPointOfReference(intersection_point, 'H');
 
       double marker_x, marker_y;
       // Find marker position in world
