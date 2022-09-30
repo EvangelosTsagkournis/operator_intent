@@ -34,9 +34,6 @@ class GoalInference:
     def is_subset(self, l1, l2):
         c1, c2 = Counter(l1), Counter(l2)
         return not c1 - c2
-    
-    def model_prediction(self):
-        return self.model.predict()
 
     def callback(self, persistent_marker_collection):
         current_state_df = pd.DataFrame()
