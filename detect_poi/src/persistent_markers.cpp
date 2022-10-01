@@ -77,10 +77,9 @@ double PersistentMarkers::calculateApproachingSpeed(Point robot_position, Point 
     direction_vector.x = direction_vector.x / vector_magnitude;
     direction_vector.y = direction_vector.y / vector_magnitude;
 
-    // Step 3: Find the dot product between the direction vector and the linear velocity vector
-    double approaching_speed_meters_per_sec = direction_vector.x * robot_linear_velocity.x + direction_vector.y * robot_linear_velocity.y;
+    // Step 3: Return the dot product between the direction vector and the linear velocity vector
 
-    return approaching_speed_meters_per_sec;
+    return (direction_vector.x * robot_linear_velocity.x + direction_vector.y * robot_linear_velocity.y);
 }
 
 double PersistentMarkers::determinant(Point vector_1, Point vector_2)
