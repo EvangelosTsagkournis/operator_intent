@@ -65,7 +65,6 @@ class GoalInferenceTests:
         # Initialize ros stuff
         rospy.init_node('operator_intent_inference_node', anonymous=True)
         self.odometry_sub = rospy.Subscriber("husky_base_ground_truth", Odometry, self.callback, queue_size=2000)
-        self.operator_intent_pub = rospy.Publisher("/operator_intent_inference", operator_intent_inference, queue_size=1)
         rospy.spin()
         
 
