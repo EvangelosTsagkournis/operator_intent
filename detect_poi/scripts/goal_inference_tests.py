@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+import csv
 from math import asin, atan2, cos, sin, sqrt
 import os
+import os.path
+import re
 import sys
 import json
 import rospy
@@ -36,10 +39,14 @@ def euler_from_quaternion(x, y, z, w):
         return roll_x, pitch_y, yaw_z # in radians
 
 class GoalInferenceTests:
-    def __init__(self, goal_a, goal_b, goal_c):
+    def __init__(self, goal_a, goal_b, goal_c, rosbag_file_name, test_scenario, trial):
         self.goal_a = goal_a
         self.goal_b = goal_b
         self.goal_c = goal_c
+
+        self.rosbag_file_name = os.path.splitext(rosbag_file_name)[0]
+        self.test_scenario = test_scenario
+        self.trial = trial
 
         self.counter=0
 
@@ -173,7 +180,26 @@ class GoalInferenceTests:
 
         return approaching_speeds
 
+    def write_goal_probabilities_to_files(self, seconds, nseconds, prediction_probabilities, prediction):
+        goal_list = ["a", "b", "c"]
+        with open("{}/Rosbags/BAGS/probabilities/{}.csv".format(os.path.expanduser('~'), self.rosbag_file_name), "a", newline='') as f:
+            writer = csv.writer(f, delimiter=",")
+            writer.writerow(
+                [
+                    "{}.{}".format(seconds, nseconds), 
+                    prediction_probabilities[0][0], 
+                    prediction_probabilities[0][1], 
+                    prediction_probabilities[0][2],
+                    prediction[0]
+                ]
+            )
+
+
     def callback(self, odometry_msg):
+
+        seconds = odometry_msg.header.stamp.secs
+        nseconds = odometry_msg.header.stamp.nsecs
+        print("Time:{}.{}\n".format(seconds, nseconds))
 
         # Calculate distance from each goal
         distances = self.calculate_distance_from_each_goal(odometry_msg)
@@ -203,13 +229,17 @@ class GoalInferenceTests:
         prediction_probabilities = self.model.predict_proba(current_state_df)
         print("Prediction probabilities:\n{}".format(prediction_probabilities))
 
+        self.write_goal_probabilities_to_files(seconds, nseconds, prediction_probabilities, prediction)
+
 
 
 
 if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
-        test_scenario = sys.argv[1]
+        rosbag_file_name = sys.argv[1]
+        test_scenario, trial = re.findall('\d+', rosbag_file_name)
+        print(test_scenario, trial)
         if (test_scenario == '1' or test_scenario == '2' or test_scenario == '3'):
             
             rospack = rospkg.RosPack()
@@ -231,9 +261,8 @@ if __name__ == "__main__":
             goal_c.x = json_content["test_scenarios"][test_scenario]["goal_c"]["x"]
             goal_c.y = json_content["test_scenarios"][test_scenario]["goal_c"]["y"]
 
-            
             try:
-                gi = GoalInferenceTests(goal_a, goal_b, goal_c)
+                gi = GoalInferenceTests(goal_a, goal_b, goal_c, rosbag_file_name, test_scenario, trial)
             except rospy.ROSInterruptException:
                 pass
 
