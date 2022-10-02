@@ -199,6 +199,7 @@ class GoalInferenceTests:
 
         # Make the prediction and get the probability for it
         prediction = self.model.predict(current_state_df)
+        print("Prediction:\n{}".format(prediction))
         prediction_probabilities = self.model.predict_proba(current_state_df)
         print("Prediction probabilities:\n{}".format(prediction_probabilities))
 
@@ -206,15 +207,14 @@ class GoalInferenceTests:
 
 
 if __name__ == "__main__":
-    rospack = rospkg.RosPack()
-    with open(os.path.join(rospack.get_path("detect_poi"), "config/config.json")) as f:
-        json_content = json.loads(f.read())
-        print(json_content["test_scenarios"]["1"]["goal_a"]["y"])
-    print("Done!")
 
     if len(sys.argv) >= 2:
         test_scenario = sys.argv[1]
         if (test_scenario == '1' or test_scenario == '2' or test_scenario == '3'):
+            
+            rospack = rospkg.RosPack()
+            with open(os.path.join(rospack.get_path("detect_poi"), "config/config.json")) as f:
+                json_content = json.loads(f.read())
 
             # Goal a
             goal_a = Point()
@@ -239,12 +239,4 @@ if __name__ == "__main__":
 
         else:
             print("Argument is not valid, choose between 1-3")
-    else:
-        print("")
 
-
-    
-    # try:
-    #     gi = GoalInferenceTests()
-    # except rospy.ROSInterruptException:
-    #     pass
