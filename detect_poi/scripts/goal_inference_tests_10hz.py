@@ -64,7 +64,8 @@ class GoalInferenceTests:
 
         # Initialize ros stuff
         rospy.init_node('operator_intent_inference_node', anonymous=True)
-        self.odometry_sub = rospy.Subscriber("husky_base_ground_truth", Odometry, self.callback)
+        self.rate = rospy.Rate(10)
+        self.odometry_sub = rospy.Subscriber("husky_base_ground_truth", Odometry, self.callback, queue_size=1)
         rospy.spin()
         
 
@@ -230,6 +231,7 @@ class GoalInferenceTests:
 
         self.write_goal_probabilities_to_files(seconds, nseconds, prediction_probabilities, prediction)
 
+        self.rate.sleep()
 
 
 
