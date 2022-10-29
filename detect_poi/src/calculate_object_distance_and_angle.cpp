@@ -44,7 +44,7 @@
 
 /* Since the kinect_camera.urdf.xacro file has no mention of the vertical fov, we set it ourselves.
   By changing the horizontal fov in the the kinect_camera.urdf.xacro, the vertical fov seems to change as well.
-  Taking for granted that the ration of horizontal_fov/vertical_fov remains constant, as well as trusting the source mentioning the
+  Taking for granted that the ratio of horizontal_fov/vertical_fov remains constant, as well as trusting the source mentioning the
   horizontal and vertical fov's  online, the calculated vertical fov is:
 */
 #define KINECT_CAMERA_VERTICAL_FOV_DEG KINECT_CAMERA_HORIZONTAL_FOV_DEG * REAL_KINECT_V1_VERTICAL_FOV / REAL_KINECT_V1_HORIZONTAL_FOV
